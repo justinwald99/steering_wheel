@@ -22,4 +22,11 @@ If done correctly, an entry named **can0** should appear when running the `ifcon
         pre-up ip link set $IFACE type can bitrate 1000000 listen-only off restart-ms 1
         up /sbin/ifconfig $IFACE up
         down /sbin/ifconfig $IFACE down
-If successful, the command `candump can0` shouldn't produce an error and should provide a stream of can messages being received by the board.
+If successful, the command `candump can0` shouldn't produce an error and should provide a stream of can messages being received by the board.  
+**Step 3:**&nbsp; Setup the screen. To do this, paste the following commands into the Pi's terminal:
+
+    cd ~
+    wget https://raw.githubusercontent.com/adafruit/Raspberry-Pi-Installer-Scripts/master/adafruit-pitft.sh
+    chmod +x adafruit-pitft.sh
+    sudo ./adafruit-pitft.sh
+This will run Adafruit's automated setup procedure. Fill out the options for the 3.5in resistive screen and rotate it 90 degrees. Then answer "no" to the question `Would you like the console to appear on the PiTFT display` and yes to the question `Would you like the HDMI display to mirror to the PiTFT display?`. For more information about this process follow the guide at  https://learn.adafruit.com/adafruit-pitft-3-dot-5-touch-screen-for-raspberry-pi/easy-install-2.
