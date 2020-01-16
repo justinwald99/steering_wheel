@@ -3,12 +3,14 @@ pygame.init()
 
 gearPos = "2"
 
-screen = pygame.display.set_mode(flags=pygame.FULLSCREEN)
+screen = pygame.display.set_mode()
 print(screen.get_width(), screen.get_height())
 gearFont = pygame.font.Font('freesansbold.ttf', 128)
 
 gearText = gearFont.render(gearPos, False, (255,255,255))
 gearTextRect = gearText.get_rect()
+
+
 
 while 1:
     for event in pygame.event.get():
@@ -21,3 +23,10 @@ while 1:
     screen.fill((0,0,0))
     screen.blit(gearText, (screen.get_width() / 2, screen.get_height() / 2))
     pygame.display.flip()
+    
+def makeGuage(surface, coordinates, label, min, max, ) {
+    GUAGE_WIDTH = 40
+    GUAGE_HEIGHT = 100
+    outline = pygame.Rect(coordinates, (GUAGE_WIDTH, GUAGE_HEIGHT))
+    pygame.draw.rect(surface, coordinates)
+}
