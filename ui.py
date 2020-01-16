@@ -3,8 +3,7 @@ pygame.init()
 
 gearPos = "2"
 
-screen = pygame.display.set_mode(flags=pygame.FULLSCREEN)
-print(screen.get_width(), screen.get_height())
+screen = pygame.display.set_mode()
 gearFont = pygame.font.Font('freesansbold.ttf', 128)
 
 gearText = gearFont.render(gearPos, False, (255,255,255))
