@@ -1,6 +1,6 @@
 import sys, pygame
 import random
-from ui_utils import Gauge, GearDisplay
+from ui_utils import Gauge, GearDisplay, VoltageBox
 
 pygame.init()
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -8,9 +8,10 @@ print(f'{screen.get_width()} x {screen.get_height()}')
 
 oilPressure = Gauge(screen, (100, 150), "Oil P", 'PSI', 0, 200)
 oilTemperature = Gauge(screen, (220, 150), "Oil T", 'F', 0, 250)
-waterTemperature = Gauge(screen, (400, 150), "Water T", 'F', 0, 220)
-fuelPressure = Gauge(screen, (500, 150), "Fuel P", 'PSI', 0, 500)
+waterTemperature = Gauge(screen, (460, 150), "Water T", 'F', 0, 220)
+fuelPressure = Gauge(screen, (580, 150), "Fuel P", 'PSI', 0, 500)
 gearPosition = GearDisplay(screen)
+voltageBox = VoltageBox(screen)
 
 while 1:
     for event in pygame.event.get():
@@ -27,5 +28,6 @@ while 1:
     waterTemperature.updateGauge(180)
     fuelPressure.updateGauge(300)
     gearPosition.updateGear(3)
+    voltageBox.updateVoltage(12.7)
 
     pygame.display.flip()

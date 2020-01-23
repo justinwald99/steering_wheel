@@ -1,4 +1,5 @@
 import pygame
+import random
 
 class Gauge():
 
@@ -56,7 +57,7 @@ class Gauge():
 class GearDisplay():
 
     GEAR_COLOR = (0, 0, 0)
-    GEAR_SIZE = 128
+    GEAR_SIZE = 256
 
     def __init__(self, surface):
         self.gear = 'N'
@@ -70,4 +71,29 @@ class GearDisplay():
         gearFont = pygame.font.Font('freesansbold.ttf', self.GEAR_SIZE)
         gearText = gearFont.render(str(self.gear), False, self.GEAR_COLOR)
         self.surface.blit(gearText, (self.surface.get_width() / 2 - gearText.get_width() / 2, self.surface.get_height() / 2 - gearText.get_height() / 2))
+
+class VoltageBox():
+
+    BACKGROUND_COLOR = (253, 255, 130)
+    BORDER_COLOR = (0, 0, 0)
+    BORDER_THICKNESS = 5
+    TEXT_COLOR = (0, 0, 0)
+    TEXT_SIZE = 64
+
+    def __init__(self, surface):
+        self.voltage = 0
+        self.surface = surface
+
+    def updateVoltage(self, voltage):
+        self.voltage = voltage
+        self.draw()
+
+    def draw(self):
+        backgroundRect = pygame.Rect((0,0), (150, 80))
+        pygame.draw.rect(self.surface, self.BACKGROUND_COLOR, backgroundRect)
+        backgroundOutline = pygame.Rect((0,0), (150, 80))
+        pygame.draw.rect(self.surface, self.BORDER_COLOR, backgroundOutline, self.BORDER_THICKNESS)
+        voltageFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
+        voltageText = voltageFont.render(str(self.voltage), False, self.TEXT_COLOR)
+        self.surface.blit(voltageText, (10, 5))
 
