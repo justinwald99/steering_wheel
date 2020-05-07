@@ -1,6 +1,7 @@
 import pygame
 import random
 
+# Vertical bar gauge.
 class Gauge():
 
     GAUGE_WIDTH = 40
@@ -54,6 +55,7 @@ class Gauge():
             (self.coordinates[0] + self.GAUGE_WIDTH / 2 - readoutText.get_width() / 2, self.coordinates[1] - readoutText.get_height())
         )
 
+# Numerical gauge indicating the current gear.
 class GearDisplay():
 
     GEAR_COLOR = (0, 0, 0)
@@ -72,6 +74,7 @@ class GearDisplay():
         gearText = gearFont.render(str(self.gear), False, self.GEAR_COLOR)
         self.surface.blit(gearText, (self.surface.get_width() / 2 - gearText.get_width() / 2, self.surface.get_height() / 2 - gearText.get_height() / 2))
 
+# Voltage box in the upper left corner of the display.
 class VoltageBox():
 
     BACKGROUND_COLOR = (253, 255, 130)
