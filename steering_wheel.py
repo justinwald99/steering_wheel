@@ -1,5 +1,6 @@
 import can
 from can_read import canResourceChannel, CanResource
+import pygame
 
 
 def setup():
@@ -13,7 +14,7 @@ def setup():
 
     # Register a list of channels, in order, that match those specifed in Motec's
     # Custom Data Set section. **Note: Order is important and should be the same
-    # as in the Custom Data Set. 
+    # as in the Custom Data Set.
     channels = list()
     channels.append(canResourceChannel('Runtime', 1))
     channels.append(canResourceChannel('RPM', 1))
@@ -33,8 +34,18 @@ def setup():
     # notify any Listeners registered to it if a message is recieved.
     canNotifier = can.notifier.Notifier(canBus, resources)
 
-    # Function that keeps the program running until input is recieved.
-    input()
+    # Initialize the display.
+    pygame.init()
+    screen = pygame.display.set_mode([720, 480])
+
+def readConfig():
+    config = list()
+    with open("config.txt") as configFile:
+        for line in configFile.read():
+            config.append()
+    return config
+
+    
 
 if __name__ == '__main__':
     setup()

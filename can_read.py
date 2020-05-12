@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """
 This Listener simply prints to stdout / the terminal or a file.
 """
@@ -8,8 +6,9 @@ from can.listener import Listener
 
 class CanResource(Listener):
     """
-    ResourceUpdater is a subclass of listener that updates values of
-    CANResources via the on_message_recieved method. Being a subclass
+    CanResource is a subclass of listener that updates values of
+    individual can channels that were sent via compount meesaging
+    via the on_message_recieved method. Being a subclass
     of listener, it should be passed to a Notifier so that CanResource
     is called when a message is recieved by the Notifier.
 
@@ -21,8 +20,9 @@ class CanResource(Listener):
 
     channels : list
         List of CAN channels associated with this CanResource.
-        CAN channels are composed of compound messages sent
-        over a single CAN ID and indexed by the first two bytes.
+        CAN Resources are compound messages that contain multiple
+        can chhanels sent over a single CAN ID and indexed by the
+        first two bytes of each CAN message.
     
     """
 
@@ -76,11 +76,6 @@ class CanResource(Listener):
             channel.updateValue(dataBytes)
         self.updateScreen()
 
-    def updateScreen(self):
-        """Update the screen with new values"""
-        for channel in self.channels:
-                print(channel.name + ': ' + str(channel.value))
-
 class canResourceChannel():
     """Single channel sent via compound messaging.
 
@@ -111,4 +106,10 @@ class canResourceChannel():
         """
         rawData = int.from_bytes(dataBytes, byteorder = 'big', signed = False)
         self.value =  rawData * self.scalingFactor
+
+    def getValue(self):
+        """Get the value of this CAN channel.
+
+        """
+        return self.value
     

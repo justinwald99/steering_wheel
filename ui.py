@@ -1,6 +1,6 @@
 import sys, pygame
 import random
-from ui_utils import Gauge, GearDisplay, VoltageBox
+from ui_utils import BarGauge, GearDisplay, VoltageBox
 import time
 
 # Initialize the display.
@@ -8,10 +8,10 @@ pygame.init()
 screen = pygame.display.set_mode([720, 480])
 
 # Add gauges to the screen.
-oilPressure = Gauge(screen, (100, 150), "Oil P", 'PSI', 0, 200)
-oilTemperature = Gauge(screen, (220, 150), "Oil T", 'F', 0, 250)
-waterTemperature = Gauge(screen, (460, 150), "Water T", 'F', 0, 220)
-fuelPressure = Gauge(screen, (580, 150), "Fuel P", 'PSI', 0, 500)
+oilPressure = BarGauge(screen, (100, 150), "Oil P", 'PSI', 0, 200)
+oilTemperature = BarGauge(screen, (220, 150), "Oil T", 'F', 0, 250)
+waterTemperature = BarGauge(screen, (460, 150), "Water T", 'F', 0, 220)
+fuelPressure = BarGauge(screen, (580, 150), "Fuel P", 'PSI', 0, 500)
 gearPosition = GearDisplay(screen)
 voltageBox = VoltageBox(screen)
 

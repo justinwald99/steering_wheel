@@ -1,8 +1,28 @@
 import pygame
 import random
 
-# Vertical bar gauge.
 class Gauge():
+    def __init__(self, surface, coordinates, label, canResource, unit, valueMin, valueMax):
+        self.surface = surface
+        self.coordinates = coordinates
+        self.label = label
+        self.canResource = canResource
+        self.unit = unit
+        self.min = valueMin
+        self.max = valueMax
+        
+        self.value = valueMin
+
+    def updateGauge(self):
+        self.value = self.canResource.getValue
+        self.draw()
+
+    def draw(self):
+        pass
+
+
+# Vertical bar gauge.
+class BarGauge(Gauge):
 
     GAUGE_WIDTH = 40
     GAUGE_HEIGHT = 200
@@ -12,19 +32,8 @@ class Gauge():
     GAUGE_LABEL_COLOR = (0, 0, 0)
     TEXT_SIZE = 24
 
-    def __init__(self, surface, coordinates, label, unit, valueMin, valueMax):
-        self.surface = surface
-        self.coordinates = coordinates
-        self.label = label
-        self.unit = unit
-        self.min = valueMin
-        self.max = valueMax
-
-        self.value = valueMin 
-
-    def updateGauge(self, value):
-        self.value = value
-        self.draw()
+    def __init__(self, surface, coordinates, label, canResource, unit, valueMin, valueMax):
+        super(surface, coordinates, label, unit, valueMin, valueMax)
 
     def draw(self):
         # Label
@@ -56,18 +65,14 @@ class Gauge():
         )
 
 # Numerical gauge indicating the current gear.
-class GearDisplay():
+class GearDisplay(Gauge):
 
     GEAR_COLOR = (0, 0, 0)
     GEAR_SIZE = 256
 
     def __init__(self, surface):
+        super(surface, coordinates, label, unit, valueMin, valueMax)
         self.gear = 'N'
-        self.surface = surface
-        
-    def updateGear(self, gear):
-        self.gear = gear
-        self.draw()
 
     def draw(self):
         gearFont = pygame.font.Font('freesansbold.ttf', self.GEAR_SIZE)
@@ -75,7 +80,7 @@ class GearDisplay():
         self.surface.blit(gearText, (self.surface.get_width() / 2 - gearText.get_width() / 2, self.surface.get_height() / 2 - gearText.get_height() / 2))
 
 # Voltage box in the upper left corner of the display.
-class VoltageBox():
+class VoltageBox(Gauge):
 
     BACKGROUND_COLOR = (253, 255, 130)
     BORDER_COLOR = (0, 0, 0)
@@ -86,10 +91,6 @@ class VoltageBox():
     def __init__(self, surface):
         self.voltage = 0
         self.surface = surface
-
-    def updateVoltage(self, voltage):
-        self.voltage = voltage
-        self.draw()
 
     def draw(self):
         backgroundRect = pygame.Rect((0,0), (150, 80))
