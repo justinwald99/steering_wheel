@@ -1,5 +1,4 @@
 import pygame
-import random
 
 class Gauge():
 
@@ -97,3 +96,21 @@ class VoltageBox():
         voltageText = voltageFont.render(str(self.voltage), False, self.TEXT_COLOR)
         self.surface.blit(voltageText, (10, 5))
 
+class RPM_Display():
+
+    TEXT_COLOR = (0, 0, 0)
+    TEXT_SIZE = 64
+    VERTICAL_POS = 10
+
+    def __init__(self, surface):
+        self.rpm = 0
+        self.surface = surface
+
+    def updateRPM(self, rpm):
+        self.rpm = rpm
+        self.draw()
+
+    def draw(self):
+        rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
+        rpmText = rpmFont.render(f'{self.rpm:,} RPM', False, self.TEXT_COLOR)
+        self.surface.blit(rpmText, (self.surface.get_width() / 2 - rpmText.get_width() / 2, self.VERTICAL_POS))
