@@ -1,7 +1,7 @@
 import sys, pygame
 import random
-from ui_utils import BarGauge, GearDisplay, VoltageBox
 import time
+from ui_utils import Gauge, BarGauge, GearDisplay, VoltageBox, RPM_Display
 
 # Initialize the display.
 pygame.init()
@@ -14,6 +14,7 @@ waterTemperature = BarGauge(screen, (460, 150), "Water T", 'F', 0, 220)
 fuelPressure = BarGauge(screen, (580, 150), "Fuel P", 'PSI', 0, 500)
 gearPosition = GearDisplay(screen)
 voltageBox = VoltageBox(screen)
+rpmDisplay = RPM_Display(screen)
 
 # Watch for escape key.
 while 1:
@@ -31,10 +32,11 @@ while 1:
     oilPressure.updateGauge(140)
     oilTemperature.updateGauge(210)
     waterTemperature.updateGauge(180)
-    fuelPressure.updateGauge(300)
+    fuelPressure.updateGauge(round(random.random() * 300))
     gearPosition.updateGear(3)
 
     voltageBox.updateVoltage(12.7)
+    rpmDisplay.updateRPM(round(random.random() * 10000))
 
     # "Flip" the display (update the display with the newly created surface.
     pygame.display.flip()
