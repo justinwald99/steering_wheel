@@ -1,7 +1,30 @@
 import can
-from can_read import canResourceChannel, CanResource
+from can_read import CanResourceChannel, CanResource
+from ui_utils import BarGauge, GearDisplay, VoltageBox, RPM_Display
 import pygame
 
+class SteeringWheel(can.notifier.Notifier):
+
+    def __init__(self, bus):
+        # Initialize the display.
+        pygame.init()
+        self.surface = pygame.display.set_mode([720, 480])
+        self.gauges = list()
+        super().__init__(bus, CanResource("Custom Data Set", list()))
+        self.constructors = {
+            "BarGauge": BarGauge,
+            "GearDisplay": GearDisplay,
+            "VoltageBox": VoltageBox,
+            "RPM_Display": RPM_Display
+        }
+
+    def addGauge(self, channel_name, scaling_factor, gaugeType, label, unit, min_value, max_value, coords = (0,0)):
+        if gaugeType in self.constructors:
+            newChannel = CanResourceChannel(channel_name, scaling_factor)
+            super().listeners = list(super().listeners[0].channels.append(newChannel))
+            self.gauges.append(self.constructors[gaugeType](self.surface, coords, label, newChannel, unit, min_value, max_value))
+        else:
+            print(f"Invalid gauge type: {gaugeType}")
 
 def setup():
     # Create the CAN bus. SocketCan is the kernel support for CAN,
@@ -12,31 +35,10 @@ def setup():
     # Add a filter to only listen on CAN ID 10, the custom data set ID from motec.
     canBus.set_filters([{"can_id": 10, "can_mask": 0xF, "extended": False}])
 
-    # Register a list of channels, in order, that match those specifed in Motec's
-    # Custom Data Set section. **Note: Order is important and should be the same
-    # as in the Custom Data Set.
-    channels = list()
-    channels.append(canResourceChannel('Runtime', 1))
-    channels.append(canResourceChannel('RPM', 1))
-    channels.append(canResourceChannel('Engine Temp', .1))
-    channels.append(canResourceChannel('Oil Pressure', .1))
-    channels.append(canResourceChannel('Fuel Pressure', .1))
-    channels.append(canResourceChannel('Gear Display', 1))
-    channels.append(canResourceChannel('Throttle Position', .1))
-
-    # Register the Custom Data Set as a CanResource. Technically, more
-    # CAN channels could be added, but the filter is only allowing some
-    # CAN traffic through.
-    resources = []
-    resources.append(CanResource('Custom Data Set', channels))
-
+    
     # Create the notifier object that will listen to the CAN bus and
     # notify any Listeners registered to it if a message is recieved.
     canNotifier = can.notifier.Notifier(canBus, resources)
-
-    # Initialize the display.
-    pygame.init()
-    screen = pygame.display.set_mode([720, 480])
 
 def readConfig():
     config = list()

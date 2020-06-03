@@ -1,1 +1,8 @@
-NAME,SCALING_FACTOR,(X_COORD,Y_COOR),LABEL,UNIT,MIN_VALUE,MAX_VALUE
+NAME,SCALING_FACTOR,GAUGE_TYPE,(X_COORD,Y_COOR),UNIT,MIN_VALUE,MAX_VALUE
+Runtime,0.1,,,,,,
+RPM,1,,,,,,
+Engine Temp,0.1,BarGauge,,,,,
+Oil Pressure,0.1,BarGauge,,,,,
+Fuel Pressure,0.1,BarGauge,,,,,
+Gear Display,1,,,,,,
+Throttle Position,0.1,,,,,,

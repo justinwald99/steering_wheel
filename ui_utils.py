@@ -13,7 +13,7 @@ class Gauge():
         self.value = valueMin
 
     def updateGauge(self):
-        self.value = self.canResource.getValue
+        self.value = self.canResource.getValue()
         self.draw()
 
     def draw(self):
@@ -32,7 +32,7 @@ class BarGauge(Gauge):
     TEXT_SIZE = 24
 
     def __init__(self, surface, coordinates, label, canResource, unit, valueMin, valueMax):
-        super(surface, coordinates, label, unit, valueMin, valueMax)
+        super().__init__(surface, coordinates, label, canResource, unit, valueMin, valueMax)
 
     def draw(self):
         # Label
@@ -69,13 +69,12 @@ class GearDisplay(Gauge):
     GEAR_COLOR = (0, 0, 0)
     GEAR_SIZE = 256
 
-    def __init__(self, surface):
-        super(surface, coordinates, label, unit, valueMin, valueMax)
-        self.gear = 'N'
+    def __init__(self, surface, coordinates, label, canResource, unit, valueMin, valueMax):
+        super().__init__(surface, coordinates, label, canResource, unit, valueMin, valueMax)
 
     def draw(self):
         gearFont = pygame.font.Font('freesansbold.ttf', self.GEAR_SIZE)
-        gearText = gearFont.render(str(self.gear), False, self.GEAR_COLOR)
+        gearText = gearFont.render(str(self.value), False, self.GEAR_COLOR)
         self.surface.blit(gearText, (self.surface.get_width() / 2 - gearText.get_width() / 2, self.surface.get_height() / 2 - gearText.get_height() / 2))
 
 # Voltage box in the upper left corner of the display.
@@ -87,9 +86,8 @@ class VoltageBox(Gauge):
     TEXT_COLOR = (0, 0, 0)
     TEXT_SIZE = 64
 
-    def __init__(self, surface):
-        self.voltage = 0
-        self.surface = surface
+    def __init__(self, surface, coordinates, label, canResource, unit, valueMin, valueMax):
+        super().__init__(surface, coordinates, label, canResource, unit, valueMin, valueMax)
 
     def draw(self):
         backgroundRect = pygame.Rect((0,0), (150, 80))
@@ -97,7 +95,7 @@ class VoltageBox(Gauge):
         backgroundOutline = pygame.Rect((0,0), (150, 80))
         pygame.draw.rect(self.surface, self.BORDER_COLOR, backgroundOutline, self.BORDER_THICKNESS)
         voltageFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-        voltageText = voltageFont.render(str(self.voltage), False, self.TEXT_COLOR)
+        voltageText = voltageFont.render(str(self.value), False, self.TEXT_COLOR)
         self.surface.blit(voltageText, (10, 5))
 
 class RPM_Display(Gauge):
@@ -106,15 +104,10 @@ class RPM_Display(Gauge):
     TEXT_SIZE = 64
     VERTICAL_POS = 10
 
-    def __init__(self, surface):
-        self.rpm = 0
-        self.surface = surface
-
-    def updateRPM(self, rpm):
-        self.rpm = rpm
-        self.draw()
+    def __init__(self, surface, coordinates, label, canResource, unit, valueMin, valueMax):
+        super().__init__(surface, coordinates, label, canResource, unit, valueMin, valueMax)
 
     def draw(self):
         rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-        rpmText = rpmFont.render(f'{self.rpm:,} RPM', False, self.TEXT_COLOR)
+        rpmText = rpmFont.render(f'{self.value:} RPM', False, self.TEXT_COLOR)
         self.surface.blit(rpmText, (self.surface.get_width() / 2 - rpmText.get_width() / 2, self.VERTICAL_POS))

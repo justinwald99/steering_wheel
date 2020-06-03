@@ -44,11 +44,11 @@ class CanResource(Listener):
             Raw message object recieved by the CAN bus.
 
         """
-        tripletIndex = int.from_bytes([msg.data[0]], byteorder = 'little', signed = False)
+        tripletIndex = int.from_bytes([msg.data[0], msg.data[1]], byteorder = 'little', signed = False)
         self.updateValues(tripletIndex, msg.data)
 
     def updateValues(self, tripletIndex, msgData):
-        """Update the values of canResourceChannels.
+        """Update the values of CanResourceChannels.
 
         UpdateValues updates the corresponding channels with information
         from the message passed to it.
@@ -66,7 +66,7 @@ class CanResource(Listener):
         """
         # Remove index bytes
         msgData.pop(0)
-        msgData.pop(1)
+        msgData.pop(0)
         channelsInMessage = len(msgData) // 2
         for index in range(0, channelsInMessage):
             channelIndex = tripletIndex * 3 + index
@@ -74,9 +74,8 @@ class CanResource(Listener):
             dataIndex = index * 2
             dataBytes = [msgData[dataIndex], msgData[dataIndex + 1]]
             channel.updateValue(dataBytes)
-        self.updateScreen()
 
-class canResourceChannel():
+class CanResourceChannel():
     """Single channel sent via compound messaging.
 
     Parameters
@@ -90,9 +89,9 @@ class canResourceChannel():
     """
 
     def __init__(self, name, scalingFactor):
-        """Create a new canResourceChannel."""
+        """Create a new CanResourceChannel."""
         self.name = name
-        self.value = None
+        self.value = 0
         self.scalingFactor = scalingFactor
 
     def updateValue(self, dataBytes):
