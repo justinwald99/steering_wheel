@@ -1,0 +1,54 @@
+can_channels:
+  - name: oil_pressure
+    scaling_factor: 0.1
+  - name: oil_temperature
+    scaling_factor: 0.1
+  - name: water_temperature
+    scaling_factor: 0.1
+  - name: fuel_pressure
+    scaling_factor: 0.1
+  - name: gear_position
+    scaling_factor: 1
+  - name: battery_voltage
+    scaling_factor: 0.01
+  - name: engine_rpm
+    scaling_factor: 1
+ui_elements:
+  - type: BarGauge
+    channel_name: oil_pressure
+    label: Oil P
+    x_coord: 100
+    y_coord: 150
+    unit: PSI
+    min_val: 0
+    max_val: 300
+  - type: BarGauge
+    channel_name: oil_temperature
+    label: Oil T
+    x_coord: 220
+    y_coord: 150
+    unit: F
+    min_val: 0
+    max_val: 250
+  - type: BarGauge
+    channel_name: water_temperature
+    label: Water T
+    x_coord: 460
+    y_coord: 150
+    unit: F
+    min_val: 0
+    max_val: 220
+  - type: BarGauge
+    channel_name: fuel_pressure
+    label: Fuel P
+    x_coord: 580
+    y_coord: 150
+    unit: F
+    min_val: 0
+    max_val: 500
+  - type: GearDisplay
+    channel_name: gear_position
+  - type: VoltageBox
+    channel_name: battery_voltage
+  - type: RPM_Display
+    channel_name: engine_rpm

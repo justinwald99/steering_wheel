@@ -1,9 +1,11 @@
-import csv
+import logging
 import sys
 import time
+import random
 
 import can
 import pygame
+import yaml
 
 from can_read import CanResource, CanResourceChannel
 from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, Warning
@@ -12,7 +14,25 @@ from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, Warning
 REFRESH_RATE = 20
 
 # Path to the config file.
-CONFIG_PATH = "config.csv"
+CONFIG_PATH = "config.yaml"
+
+# Create steering_wheel logger.
+wheelLogger = logging.getLogger('wheelLogger')
+
+if (len(sys.argv) > 1):
+    if (sys.argv[1][0:4] == "log="):
+        logging.basicConfig(level=sys.argv[1][4:])
+    else:
+        print(
+            "\nusage: python steering_wheel log=[DEBUG_LEVEL]\n"
+            "    ex: python steering_wheel log=DEBUG\n"
+            "    LOGGING_LEVELS:\n"
+            "        DEBUG, INFO, WARNING, ERROR, CRITICAL"
+        )
+        exit(1)
+    
+
+wheelLogger.debug("Starting log...")
 
 class SteeringWheel(can.notifier.Notifier):
     """ An instance of the steering wheel display.
@@ -27,56 +47,64 @@ class SteeringWheel(can.notifier.Notifier):
         # Initialize the display.
         pygame.init()
         self.surface = pygame.display.set_mode([720, 480])
-        self.gauges = list()
+        self.elements = list()
+        wheelLogger.debug("Display initialized.")
 
         # Initialize the Notifier componoent.
         super().__init__(bus, list((CanResource("Custom Data Set", list()),)))
+
+        # Create the list of ui_util constructors.
+        self.constructors = {
+            "BarGauge": BarGauge,
+            "GearDisplay": GearDisplay,
+            "VoltageBox": VoltageBox,
+            "RPM_Display": RPM_Display
+        }
 
         # Read the config.
         self.readConfig()
 
     def readConfig(self):
         # Open the config file.
-        with open(CONFIG_PATH, newline='') as configFile:
-            # Read the config as a csv.
-            configReader = csv.reader(configFile)
-            # Skip the header row.
-            next(configReader)
-            for row in configReader:
-                # GAUGE_TYPE,LABEL,SCALING_FACTOR,X_COORD,Y_COORD,UNIT,MIN_VALUE,MAX_VALUE
-                if row[0] == "BarGauge":
-                    newChannel = CanResourceChannel(row[1], float(row[2]))
-                    self.listeners[0].channels.append(newChannel)
-                    self.gauges.append(BarGauge(self.surface, (int(row[3]), int(row[4])), row[1], newChannel, row[5], float(row[6]), float(row[7])))
-                elif row[0] == "GearDisplay":
-                    newChannel = CanResourceChannel(row[1], float(row[2]))
-                    self.listeners[0].channels.append(newChannel)
-                    self.gauges.append(GearDisplay(self.surface, (0, 0), row[1], newChannel, row[5], float(row[6]), float(row[7])))
-                elif row[0] == "VoltageBox":
-                    newChannel = CanResourceChannel(row[1], float(row[2]))
-                    self.listeners[0].channels.append(newChannel)
-                    self.gauges.append(VoltageBox(self.surface, (0, 0), row[1], newChannel, row[5], float(row[6]), float(row[7])))
-                elif row[0] == "RPM_Display":
-                    newChannel = CanResourceChannel(row[1], float(row[2]))
-                    self.listeners[0].channels.append(newChannel)
-                    self.gauges.append(RPM_Display(self.surface, (0, 0), row[1], newChannel, row[5], float(row[6]), float(row[7])))
-                elif row[0] == "Warning":
-                    self.listeners[0].channels.append(newChannel)
-                    self.gauges.append(RPM_Display(self.surface, (0, 0), row[1], newChannel, lambda x: x > ))
+        with open(CONFIG_PATH, 'r') as configFile:
+            try:
+                config = yaml.safe_load(configFile)
+            except yaml.YAMLError as exc:
+                print(exc)
+        
+        # Add CAN channels to the notifier.
+        for channel in config["can_channels"]:
+            self.listeners[0].channels.append(CanResourceChannel(channel['name'], channel['scaling_factor']))
+            wheelLogger.debug(f"Channel loaded: {channel['name']}.")
+
+        for element in config['ui_elements']:
+            if element['type'] in self.constructors:
+                # Retrieve the correct can channel for the element.
+                canChannel = None
+                for channel in self.listeners[0].channels:
+                    if channel.name == element['channel_name']:
+                        canChannel = channel
+                        break
+                # Ensure a channel was found.
+                if not canChannel:
+                    wheelLogger.warning(f"Invalid can channel: {element['channel_name']}")
                 else:
-                    print(f"Invalid gauge type: {row[0]}")
-            print (self.gauges)
+                    # Call the correct constructor.
+                    self.elements.append(self.constructors[element['type']](self.surface, canChannel, **element))
+                    wheelLogger.debug(f"UI element loaded: {element['type']}.")
+            else:
+                wheelLogger.warning(f"Invalid gauge type: {element['type']}")
 
     def update(self):
-        '''Redraw the gauges with updated values and blit the screen.
+        '''Redraw the elements with updated values and blit the screen.
 
         '''
 
         # Write black to the screen before every blit.
         self.surface.fill((255, 255, 255))
 
-        for gauge in self.gauges:
-            gauge.draw()
+        for element in self.elements:
+            element.updateElement()
 
         # "Flip" the display (update the display with the newly created surface.
         pygame.display.flip()
@@ -101,7 +129,7 @@ def setup():
 
     wheel = SteeringWheel(canBus)
 
-    testBus = can.interface.Bus(bustype="virtual", bitrate=100000)
+    testBus = can.interface.Bus(bustype="virtual", bitrate=1000000)
     testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x00\x00\x09\xC4\x08\x34\x07\x6C')))
     testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x01\x00\x0B\x54\x00\x03\x05\x0A')))
     testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x02\x00\x09\xC4')))
@@ -115,9 +143,13 @@ def setup():
                 if event.key == pygame.K_ESCAPE:
                     sys.exit()
         # Update screen at given refresh rate.
-        if (time.time() - lastUpdateTime < 1 / REFRESH_RATE):
+        if (time.time() - lastUpdateTime > 1 / REFRESH_RATE):
+            preUpdate = time.time()
             wheel.update()
-        
+            wheelLogger.info(f"cpu_fps: {int(1 / (time.time() - preUpdate))}")
+            wheelLogger.info(f"real_fps: {int(1 / (time.time() - lastUpdateTime))}")
+            lastUpdateTime = time.time()
+        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([0,0,1,int(random.random()*255),1,int(random.random()*255),1,int(random.random()*255)]))))
 
 if __name__ == '__main__':
     setup()
