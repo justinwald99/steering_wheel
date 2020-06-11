@@ -32,26 +32,8 @@ class SteeringWheel(can.notifier.Notifier):
         # Initialize the Notifier componoent.
         super().__init__(bus, list((CanResource("Custom Data Set", list()),)))
 
-        # Form a list of contructors to make gauges.
-        self.constructors = {
-            "BarGauge": BarGauge,
-            "GearDisplay": GearDisplay,
-            "VoltageBox": VoltageBox,
-            "RPM_Display": RPM_Display
-        }
-
         # Read the config.
         self.readConfig()
-
-    def addGauge(self, gaugeType, label, scaling_factor, min_value, max_value, unit = "", coords = (0,0)):
-        # Check that the requested gaugeType is in the dict of constructors.
-        if gaugeType in self.constructors:
-            newChannel = CanResourceChannel(label, scaling_factor)
-            self.listeners[0].channels.append(newChannel)
-            print(unit)
-            self.gauges.append(self.constructors[gaugeType](self.surface, coords, label, newChannel, unit, min_value, max_value))
-        else:
-            print(f"Invalid gauge type: {gaugeType}")
 
     def readConfig(self):
         # Open the config file.
@@ -61,22 +43,29 @@ class SteeringWheel(can.notifier.Notifier):
             # Skip the header row.
             next(configReader)
             for row in configReader:
-                # Replace blanks with 0s.
-                for index, value in enumerate(row):
-                    if not value:
-                        row[index] = 0
-
-                # gaugeType, label, scaling_factor, min_value, max_value, unit, coords)
-                self.addGauge(
-                    row[0],
-                    row[1],
-                    float(row[2]),
-                    float(row[6]),
-                    float(row[7]),
-                    row[5],
-                    (int(row[3]), int(row[4]))
-                )
-            
+                # GAUGE_TYPE,LABEL,SCALING_FACTOR,X_COORD,Y_COORD,UNIT,MIN_VALUE,MAX_VALUE
+                if row[0] == "BarGauge":
+                    newChannel = CanResourceChannel(row[1], float(row[2]))
+                    self.listeners[0].channels.append(newChannel)
+                    self.gauges.append(BarGauge(self.surface, (int(row[3]), int(row[4])), row[1], newChannel, row[5], float(row[6]), float(row[7])))
+                elif row[0] == "GearDisplay":
+                    newChannel = CanResourceChannel(row[1], float(row[2]))
+                    self.listeners[0].channels.append(newChannel)
+                    self.gauges.append(GearDisplay(self.surface, (0, 0), row[1], newChannel, row[5], float(row[6]), float(row[7])))
+                elif row[0] == "VoltageBox":
+                    newChannel = CanResourceChannel(row[1], float(row[2]))
+                    self.listeners[0].channels.append(newChannel)
+                    self.gauges.append(VoltageBox(self.surface, (0, 0), row[1], newChannel, row[5], float(row[6]), float(row[7])))
+                elif row[0] == "RPM_Display":
+                    newChannel = CanResourceChannel(row[1], float(row[2]))
+                    self.listeners[0].channels.append(newChannel)
+                    self.gauges.append(RPM_Display(self.surface, (0, 0), row[1], newChannel, row[5], float(row[6]), float(row[7])))
+                elif row[0] == "Warning":
+                    self.listeners[0].channels.append(newChannel)
+                    self.gauges.append(RPM_Display(self.surface, (0, 0), row[1], newChannel, lambda x: x > ))
+                else:
+                    print(f"Invalid gauge type: {row[0]}")
+            print (self.gauges)
 
     def update(self):
         '''Redraw the gauges with updated values and blit the screen.
