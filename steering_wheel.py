@@ -11,7 +11,7 @@ from can_read import CanResource, CanResourceChannel
 from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, Warning
 
 # Refresh rate in Hz.
-REFRESH_RATE = 20
+REFRESH_RATE = 25
 
 # Path to the config file.
 CONFIG_PATH = "config.yaml"
