@@ -114,17 +114,48 @@ class RPM_Display(Gauge):
         rpmText = rpmFont.render(f'{int(self.value)} RPM', False, self.TEXT_COLOR)
         self.surface.blit(rpmText, (self.surface.get_width() / 2 - rpmText.get_width() / 2, self.VERTICAL_POS))
 
-class Warning():
-    def __init__(self, surface, x_coord, y_coord, label, canResource, conditional, imagePath):
+class DriverWarning():
+
+    OPERATORS = ["<", ">", "<=", ">="]
+
+    def __init__(self, surface, canResource, x_coord=0, y_coord=0, conditional="", imagePath="", **kwargs):
         self.surface = surface
+        self.canResource = canResource
         self.x_coord = x_coord
         self.y_coord = y_coord
-        self.label = label
-        self.canResource = canResource
         self.conditional = conditional
         self.imagePath = imagePath
+        self.value = 0
+        self.image = pygame.image.load(self.imagePath)
+
+    def updateElement(self):
+        self.value = self.canResource.getValue()
+        self.draw()
 
     def draw(self):
-        if (self.conditional(self.value)):
-            image = pygame.image.load(self.imagePath)
-            self.surface.blit(image, (self.x_coord, self.y_coord))
+        operator = self.conditional.split()[0]
+        value = self.conditional.split()[1]
+        
+        if (operator in self.OPERATORS and value.isdecimal() and eval(f"{self.value} {operator} {value}")):
+            self.surface.blit(self.image, (self.x_coord, self.y_coord))
+
+class Background():
+
+    THRESHOLD=11000
+    MAX_VALUE=12500
+
+    def __init__(self, surface, canResource, imagePath="", **kwargs):
+        self.surface = surface
+        self.canResource = canResource
+        self.imagePath = imagePath
+        self.value = 0
+        self.image = image = pygame.image.load(self.imagePath)
+
+    def updateElement(self):
+        self.value = self.canResource.getValue()
+        self.draw()
+
+    def draw(self):
+        alpha = (self.value - self.THRESHOLD)/(self.MAX_VALUE - self.THRESHOLD) * 255
+        self.image.set_alpha(alpha)
+        self.surface.blit(self.image, (0, 0))

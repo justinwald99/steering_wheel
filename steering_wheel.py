@@ -8,7 +8,7 @@ import pygame
 import yaml
 
 from can_read import CanResource, CanResourceChannel
-from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, Warning
+from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, DriverWarning, Background
 
 # Refresh rate in Hz.
 REFRESH_RATE = 25
@@ -58,7 +58,9 @@ class SteeringWheel(can.notifier.Notifier):
             "BarGauge": BarGauge,
             "GearDisplay": GearDisplay,
             "VoltageBox": VoltageBox,
-            "RPM_Display": RPM_Display
+            "RPM_Display": RPM_Display,
+            "DriverWarning":DriverWarning,
+            "Background":Background
         }
 
         # Read the config.
@@ -134,6 +136,8 @@ def setup():
     testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x01\x00\x0B\x54\x00\x03\x05\x0A')))
     testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x02\x00\x09\xC4')))
 
+    rpm = 8000
+    inc = .15
     lastUpdateTime = time.time()
     while 1:
         for event in pygame.event.get():
@@ -150,6 +154,9 @@ def setup():
             wheelLogger.info(f"real_fps: {int(1 / (time.time() - lastUpdateTime))}")
             lastUpdateTime = time.time()
         testBus.send(can.Message(arbitration_id=10, data=bytearray(list([0,0,1,int(random.random()*255),1,int(random.random()*255),1,int(random.random()*255)]))))
+        rpm = rpm + inc
+        if rpm > 12500 or rpm < 8000: inc = inc * -1
+        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([2,0,int(rpm / 256 % 256), int(rpm % 256)]))))
 
 if __name__ == '__main__':
     setup()

@@ -14,6 +14,9 @@ can_channels:
   - name: engine_rpm
     scaling_factor: 1
 ui_elements:
+  - type: Background
+    channel_name: engine_rpm
+    imagePath: assets/mwf_wolf.png
   - type: BarGauge
     channel_name: oil_pressure
     label: Oil P
@@ -43,7 +46,7 @@ ui_elements:
     label: Fuel P
     x_coord: 580
     y_coord: 150
-    unit: F
+    unit: PSI
     min_val: 0
     max_val: 500
   - type: GearDisplay
@@ -52,3 +55,15 @@ ui_elements:
     channel_name: battery_voltage
   - type: RPM_Display
     channel_name: engine_rpm
+  - type: DriverWarning
+    channel_name: battery_voltage
+    x_coord: 15
+    y_coord: 160
+    conditional: "< 12"
+    imagePath: assets/battery_warning.png
+  - type: DriverWarning
+    channel_name: oil_temperature
+    x_coord: 15
+    y_coord: 240
+    conditional: "> 100"
+    imagePath: assets/oil_temp_warning.png
