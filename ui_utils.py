@@ -117,9 +117,20 @@ class RPM_Display(Gauge):
 
 class DriverWarning():
 
+    # List of valid conditional operators.
     OPERATORS = ["<", ">", "<=", ">="]
+
     # Create steering_wheel logger.
     wheelLogger = logging.getLogger('wheelLogger')
+
+    # Text size under warning.
+    TEXT_SIZE = 14
+
+    # Text color
+    TEXT_COLOR = (0, 0, 0)
+
+    # Max length of warning text before truncating.
+    TEXT_TRUNCATE_LENGTH = 9
     
 
     def __init__(self, surface, channels, x_coord=0, y_coord=0, conditionals=[], imagePath="", **kwargs):
@@ -137,8 +148,6 @@ class DriverWarning():
 
     def draw(self):
         if self.checkRules():
-            # rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-            # rpmText = rpmFont.render(f'{int(self.value)} RPM', False, self.TEXT_COLOR)
             self.surface.blit(self.image, (self.x_coord, self.y_coord))
 
     def addConditions(self, conditionals):
@@ -156,6 +165,10 @@ class DriverWarning():
         for rule in self.rules:
             if eval(f"{rule[0].getValue()} {rule[1]} {rule[2]}"):
                 self.wheelLogger.info(f"{rule[0].name} {rule[1]} {rule[2]}")
+                # Put the rule's can channel below the warning.
+                rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
+                rpmText = rpmFont.render(f"{rule[0].name[:self.TEXT_TRUNCATE_LENGTH]}", False, self.TEXT_COLOR)
+                self.surface.blit(rpmText, (self.x_coord, self.y_coord + self.image.get_height()))
                 return True
         return False
 
