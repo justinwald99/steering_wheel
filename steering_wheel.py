@@ -18,6 +18,7 @@ REFRESH_RATE = 25
 # Path to the config file.
 CONFIG_PATH = "config.yaml"
 
+# Number of logs kept at a time.
 KEPT_LOGS = 25
 
 # Create steering_wheel logger.
@@ -135,27 +136,14 @@ def setup():
     # of the network is 1000000 bits/s.
 
     # ########## REAL CAN BUS ######### #
-    # canBus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=1000000)
-    # ########## TEST CAN BUS ######### #
-    canBus = can.interface.Bus(bustype='virtual', bitrate=1000000)
+    canBus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=1000000)
 
     # Add a filter to only listen on CAN ID 10, the custom data set ID from motec.
-    # canBus.set_filters([{"can_id": 10, "can_mask": 0xF, "extended": False}])
+    canBus.set_filters([{"can_id": 10, "can_mask": 0xF, "extended": False}])
 
-    
-    # # Create the notifier object that will listen to the CAN bus and
-    # # notify any Listeners registered to it if a message is recieved.
-    # canNotifier = can.notifier.Notifier(canBus, resources)
-
+    # Create an instance of the steering wheel listener.
     wheel = SteeringWheel(canBus)
 
-    testBus = can.interface.Bus(bustype="virtual", bitrate=1000000)
-    testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x00\x00\x09\xC4\x08\x34\x07\x6C')))
-    testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x01\x00\x0B\x54\x00\x03\x05\x0A')))
-    testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x02\x00\x09\xC4')))
-
-    rpm = 8000
-    inc = .15
     lastUpdateTime = time.time()
     while 1:
         for event in pygame.event.get():
@@ -171,10 +159,6 @@ def setup():
             # print(f"cpu_fps: {int(1 / (time.time() - preUpdate))}")
             # print(f"real_fps: {int(1 / (time.time() - lastUpdateTime))}")
             lastUpdateTime = time.time()
-        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([0,0,1,int(random.random()*255),1,int(random.random()*255),1,int(random.random()*255)]))))
-        rpm = rpm + inc
-        if rpm > 12500 or rpm < 8000: inc = inc * -1
-        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([2,0,int(rpm / 256 % 256), int(rpm % 256)]))))
 
 if __name__ == '__main__':
     setup()
