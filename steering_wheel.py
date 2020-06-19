@@ -1,4 +1,6 @@
+import datetime
 import logging
+import os
 import sys
 import time
 import random
@@ -16,22 +18,19 @@ REFRESH_RATE = 25
 # Path to the config file.
 CONFIG_PATH = "config.yaml"
 
+KEPT_LOGS = 25
+
 # Create steering_wheel logger.
+while (len(os.listdir("logs")) > KEPT_LOGS - 1):
+    fileList = dict()
+    for logFile in os.listdir("logs"):
+        fileList.update({os.path.getctime(f"logs/{logFile}"): logFile})
+    sortedFiles = list(fileList.keys())
+    os.remove(f"logs/{fileList[sortedFiles[0]]}")
+
+logging.basicConfig(filename=f"logs/steering_wheel_log_{datetime.datetime.now().strftime('%I.%M.%S%p_%a-%b-%d-%Y')}.txt", level="DEBUG")
 wheelLogger = logging.getLogger('wheelLogger')
-
-if (len(sys.argv) > 1):
-    if (sys.argv[1][0:4] == "log="):
-        logging.basicConfig(level=sys.argv[1][4:])
-    else:
-        print(
-            "\nusage: python steering_wheel log=[DEBUG_LEVEL]\n"
-            "    ex: python steering_wheel log=DEBUG\n"
-            "    LOGGING_LEVELS:\n"
-            "        DEBUG, INFO, WARNING, ERROR, CRITICAL"
-        )
-        exit(1)
     
-
 wheelLogger.debug("Starting log...")
 
 class SteeringWheel(can.notifier.Notifier):
@@ -63,6 +62,11 @@ class SteeringWheel(can.notifier.Notifier):
             "Background":Background
         }
 
+        # List of elements that need access to multiple channels.
+        self.multiChannelElements = [
+            "DriverWarning"
+        ]
+
         # Read the config.
         self.readConfig()
 
@@ -79,8 +83,20 @@ class SteeringWheel(can.notifier.Notifier):
             self.listeners[0].channels.append(CanResourceChannel(channel['name'], channel['scaling_factor']))
             wheelLogger.debug(f"Channel loaded: {channel['name']}.")
 
+        # Add each element in config.
         for element in config['ui_elements']:
-            if element['type'] in self.constructors:
+    
+            # Multi-channel elements.
+            if element['type'] in self.constructors and element['type'] in self.multiChannelElements:
+                # Find all the channels.
+                channels = {}
+                for channel in self.listeners[0].channels:
+                    if channel.name in element['channel_list']:
+                        channels.update({channel.name: channel})
+                self.elements.append(self.constructors[element['type']](self.surface, channels, **element))
+
+            # Single channel elements.
+            elif element['type'] in self.constructors:
                 # Retrieve the correct can channel for the element.
                 canChannel = None
                 for channel in self.listeners[0].channels:
@@ -94,6 +110,8 @@ class SteeringWheel(can.notifier.Notifier):
                     # Call the correct constructor.
                     self.elements.append(self.constructors[element['type']](self.surface, canChannel, **element))
                     wheelLogger.debug(f"UI element loaded: {element['type']}.")
+            
+            # Invalid element.
             else:
                 wheelLogger.warning(f"Invalid gauge type: {element['type']}")
 
@@ -148,10 +166,10 @@ def setup():
                     sys.exit()
         # Update screen at given refresh rate.
         if (time.time() - lastUpdateTime > 1 / REFRESH_RATE):
-            preUpdate = time.time()
+            # preUpdate = time.time()
             wheel.update()
-            wheelLogger.info(f"cpu_fps: {int(1 / (time.time() - preUpdate))}")
-            wheelLogger.info(f"real_fps: {int(1 / (time.time() - lastUpdateTime))}")
+            # print(f"cpu_fps: {int(1 / (time.time() - preUpdate))}")
+            # print(f"real_fps: {int(1 / (time.time() - lastUpdateTime))}")
             lastUpdateTime = time.time()
         testBus.send(can.Message(arbitration_id=10, data=bytearray(list([0,0,1,int(random.random()*255),1,int(random.random()*255),1,int(random.random()*255)]))))
         rpm = rpm + inc

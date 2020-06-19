@@ -1,4 +1,5 @@
 import pygame
+import logging
 
 class Gauge():
     def __init__(self, surface, canResource, x_coord=0, y_coord=0, label="no name", unit="", min_val=0, max_val=1):
@@ -117,27 +118,46 @@ class RPM_Display(Gauge):
 class DriverWarning():
 
     OPERATORS = ["<", ">", "<=", ">="]
+    # Create steering_wheel logger.
+    wheelLogger = logging.getLogger('wheelLogger')
+    
 
-    def __init__(self, surface, canResource, x_coord=0, y_coord=0, conditional="", imagePath="", **kwargs):
+    def __init__(self, surface, channels, x_coord=0, y_coord=0, conditionals=[], imagePath="", **kwargs):
         self.surface = surface
-        self.canResource = canResource
+        self.channels = channels
         self.x_coord = x_coord
         self.y_coord = y_coord
-        self.conditional = conditional
         self.imagePath = imagePath
-        self.value = 0
         self.image = pygame.image.load(self.imagePath)
+        self.rules = []
+        self.addConditions(conditionals)
 
     def updateElement(self):
-        self.value = self.canResource.getValue()
         self.draw()
 
     def draw(self):
-        operator = self.conditional.split()[0]
-        value = self.conditional.split()[1]
-        
-        if (operator in self.OPERATORS and value.isdecimal() and eval(f"{self.value} {operator} {value}")):
+        if self.checkRules():
+            # rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
+            # rpmText = rpmFont.render(f'{int(self.value)} RPM', False, self.TEXT_COLOR)
             self.surface.blit(self.image, (self.x_coord, self.y_coord))
+
+    def addConditions(self, conditionals):
+        for condition in conditionals:
+            parsedValues = condition.split()
+            channel = parsedValues[0]
+            operator = parsedValues[1]
+            value = parsedValues[2]
+            if channel not in self.channels.keys() or operator not in self.OPERATORS:
+                print(f"Invalid contional: {condition}")
+                exit(1)
+            self.rules.append([self.channels[channel], operator, value])
+
+    def checkRules(self):
+        for rule in self.rules:
+            if eval(f"{rule[0].getValue()} {rule[1]} {rule[2]}"):
+                self.wheelLogger.info(f"{rule[0].name} {rule[1]} {rule[2]}")
+                return True
+        return False
 
 class Background():
 
