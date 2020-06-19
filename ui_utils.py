@@ -1,5 +1,10 @@
-import pygame
 import logging
+
+import pygame
+import yaml
+
+# Location of the default theme
+DEFAULT_THEME_PATH = "default_theme.yaml"
 
 class Gauge():
     def __init__(self, surface, canResource, x_coord=0, y_coord=0, label="no name", unit="", min_val=0, max_val=1):
@@ -12,6 +17,7 @@ class Gauge():
         self.min = min_val
         self.max = max_val
         
+        self.changeTheme(DEFAULT_THEME_PATH)
         self.value = min_val
 
     def updateElement(self):
@@ -21,6 +27,11 @@ class Gauge():
     def draw(self):
         pass
 
+    def changeTheme(self, fileName):
+        with open(fileName, "r") as themeFile:
+            self.theme = yaml.safe_load(themeFile)
+        for name, color in self.theme.items():
+            self.theme[name] = pygame.Color(color)
 
 # Vertical bar gauge.
 class BarGauge(Gauge):
@@ -28,9 +39,6 @@ class BarGauge(Gauge):
     GAUGE_WIDTH = 40
     GAUGE_HEIGHT = 200
     GAUGE_OUTLINE_WIDTH = 5
-    GAUGE_FILL_COLOR = (255, 0, 0)
-    GAUGE_OUTLINE_COLOR = (0, 0, 0)
-    GAUGE_LABEL_COLOR = (0, 0, 0)
     TEXT_SIZE = 24
 
     def __init__(self, surface, canResource, x_coord=0, y_coord=0, label="no name", unit="", min_val=0, max_val=1, **kwargs):
@@ -40,7 +48,7 @@ class BarGauge(Gauge):
 
         # Label
         labelFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-        labelText = labelFont.render(self.label, False, self.GAUGE_LABEL_COLOR)
+        labelText = labelFont.render(self.label, False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(
             labelText, 
             (self.x_coord + self.GAUGE_WIDTH / 2 - labelText.get_width() / 2, self.y_coord + self.GAUGE_HEIGHT)
@@ -52,15 +60,15 @@ class BarGauge(Gauge):
         fillHeight = min(self.GAUGE_HEIGHT, round(gaugePercentage * self.GAUGE_HEIGHT))
         fillCoords = (self.x_coord, self.y_coord + self.GAUGE_HEIGHT - fillHeight) 
         fillRect = pygame.Rect(fillCoords, (self.GAUGE_WIDTH, fillHeight))
-        pygame.draw.rect(self.surface, self.GAUGE_FILL_COLOR, fillRect)
+        pygame.draw.rect(self.surface, self.theme['BAR_GAUGE_FILL'], fillRect)
 
         # Outline
         outlineRect = pygame.Rect((self.x_coord, self.y_coord), (self.GAUGE_WIDTH, self.GAUGE_HEIGHT))
-        pygame.draw.rect(self.surface, self.GAUGE_OUTLINE_COLOR, outlineRect, self.GAUGE_OUTLINE_WIDTH)
+        pygame.draw.rect(self.surface, self.theme['PRIMARY_COLOR'], outlineRect, self.GAUGE_OUTLINE_WIDTH)
 
         # Exact readout
         readoutFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-        readoutText = readoutFont.render(f'{int(self.value)} {self.unit}', False, self.GAUGE_LABEL_COLOR)
+        readoutText = readoutFont.render(f'{int(self.value)} {self.unit}', False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(
             readoutText, 
             (self.x_coord + self.GAUGE_WIDTH / 2 - readoutText.get_width() / 2, self.y_coord - readoutText.get_height())
@@ -68,8 +76,6 @@ class BarGauge(Gauge):
 
 # Numerical gauge indicating the current gear.
 class GearDisplay(Gauge):
-
-    GEAR_COLOR = (0, 0, 0)
     GEAR_SIZE = 256
 
     def __init__(self, surface, canResource, **kwargs):
@@ -77,16 +83,12 @@ class GearDisplay(Gauge):
 
     def draw(self):
         gearFont = pygame.font.Font('freesansbold.ttf', self.GEAR_SIZE)
-        gearText = gearFont.render(str(int(self.value)), False, self.GEAR_COLOR)
+        gearText = gearFont.render(str(int(self.value)), False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(gearText, (self.surface.get_width() / 2 - gearText.get_width() / 2, self.surface.get_height() / 2 - gearText.get_height() / 2))
 
 # Voltage box in the upper left corner of the display.
 class VoltageBox(Gauge):
-
-    BACKGROUND_COLOR = (253, 255, 130)
-    BORDER_COLOR = (0, 0, 0)
     BORDER_THICKNESS = 5
-    TEXT_COLOR = (0, 0, 0)
     TEXT_SIZE = 64
 
     def __init__(self, surface, canResource, **kwargs):
@@ -94,16 +96,15 @@ class VoltageBox(Gauge):
 
     def draw(self):
         backgroundRect = pygame.Rect((0,0), (150, 80))
-        pygame.draw.rect(self.surface, self.BACKGROUND_COLOR, backgroundRect)
+        pygame.draw.rect(self.surface, self.theme['VOLTAGE_BOX_BACKGROUND'], backgroundRect)
         backgroundOutline = pygame.Rect((0,0), (150, 80))
-        pygame.draw.rect(self.surface, self.BORDER_COLOR, backgroundOutline, self.BORDER_THICKNESS)
+        pygame.draw.rect(self.surface, self.theme['PRIMARY_COLOR'], backgroundOutline, self.BORDER_THICKNESS)
         voltageFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-        voltageText = voltageFont.render(str(self.value), False, self.TEXT_COLOR)
+        voltageText = voltageFont.render(str(self.value), False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(voltageText, (10, 5))
 
 class RPM_Display(Gauge):
 
-    TEXT_COLOR = (0, 0, 0)
     TEXT_SIZE = 64
     VERTICAL_POS = 10
 
@@ -112,7 +113,7 @@ class RPM_Display(Gauge):
 
     def draw(self):
         rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-        rpmText = rpmFont.render(f'{int(self.value)} RPM', False, self.TEXT_COLOR)
+        rpmText = rpmFont.render(f'{int(self.value)} RPM', False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(rpmText, (self.surface.get_width() / 2 - rpmText.get_width() / 2, self.VERTICAL_POS))
 
 class DriverWarning():
@@ -127,7 +128,6 @@ class DriverWarning():
     TEXT_SIZE = 14
 
     # Text color
-    TEXT_COLOR = (0, 0, 0)
 
     # Max length of warning text before truncating.
     TEXT_TRUNCATE_LENGTH = 9
@@ -167,7 +167,7 @@ class DriverWarning():
                 self.wheelLogger.info(f"{rule[0].name} {rule[1]} {rule[2]}")
                 # Put the rule's can channel below the warning.
                 rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-                rpmText = rpmFont.render(f"{rule[0].name[:self.TEXT_TRUNCATE_LENGTH]}", False, self.TEXT_COLOR)
+                rpmText = rpmFont.render(f"{rule[0].name[:self.TEXT_TRUNCATE_LENGTH]}", False, self.theme['PRIMARY_COLOR'])
                 self.surface.blit(rpmText, (self.x_coord, self.y_coord + self.image.get_height()))
                 return True
         return False
@@ -182,7 +182,7 @@ class Background():
         self.canResource = canResource
         self.imagePath = imagePath
         self.value = 0
-        self.image = image = pygame.image.load(self.imagePath)
+        self.image = pygame.image.load(self.imagePath)
 
     def updateElement(self):
         self.value = self.canResource.getValue()
@@ -192,3 +192,8 @@ class Background():
         alpha = (self.value - self.THRESHOLD)/(self.MAX_VALUE - self.THRESHOLD) * 255
         self.image.set_alpha(alpha)
         self.surface.blit(self.image, (0, 0))
+
+    def changeTheme(self, fileName):
+        with open(fileName, "r") as theme:
+            theme = yaml.safe_load(theme)
+        self.image.fill(pygame.Color(theme['SECONDARY_COLOR']))

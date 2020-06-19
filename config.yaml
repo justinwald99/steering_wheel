@@ -16,7 +16,7 @@ can_channels:
 ui_elements:
   - type: Background
     channel_name: engine_rpm
-    imagePath: assets/mwf_wolf.png
+    imagePath: assets/wmf_wolf.png
   - type: BarGauge
     channel_name: oil_pressure
     label: Oil P
@@ -55,27 +55,27 @@ ui_elements:
     channel_name: battery_voltage
   - type: RPM_Display
     channel_name: engine_rpm
-  - type: DriverWarning
-    channel_list: [battery_voltage]
-    x_coord: 15
-    y_coord: 160
-    conditionals: ["battery_voltage < 12"]
-    imagePath: assets/battery_warning.png
-  - type: DriverWarning
-    channel_list: [oil_temperature]
-    x_coord: 15
-    y_coord: 240
-    conditionals: ["oil_temperature > 100"]
-    imagePath: assets/oil_temp_warning.png
-  - type: DriverWarning
-    channel_list: [water_temperature]
-    x_coord: 641
-    y_coord: 160
-    conditionals: ["water_temperature > 200"]
-    imagePath: assets/water_temp_warning.png
-  - type: DriverWarning
-    channel_list: [oil_pressure, engine_rpm]
-    x_coord: 641
-    y_coord: 240
-    conditionals: ["oil_pressure > 200", "engine_rpm > 11000"]
-    imagePath: assets/generic_warning.png
+  # - type: DriverWarning
+  #   channel_list: [battery_voltage]
+  #   x_coord: 15
+  #   y_coord: 160
+  #   conditionals: ["battery_voltage < 12"]
+  #   imagePath: assets/battery_warning.png
+  # - type: DriverWarning
+  #   channel_list: [oil_temperature]
+  #   x_coord: 15
+  #   y_coord: 240
+  #   conditionals: ["oil_temperature > 100"]
+  #   imagePath: assets/oil_temp_warning.png
+  # - type: DriverWarning
+  #   channel_list: [water_temperature]
+  #   x_coord: 641
+  #   y_coord: 160
+  #   conditionals: ["water_temperature > 200"]
+  #   imagePath: assets/water_temp_warning.png
+  # - type: DriverWarning
+  #   channel_list: [oil_pressure, engine_rpm]
+  #   x_coord: 641
+  #   y_coord: 240
+  #   conditionals: ["oil_pressure > 200", "engine_rpm > 11000"]
+  #   imagePath: assets/generic_warning.png

@@ -21,6 +21,9 @@ CONFIG_PATH = "config.yaml"
 # Number of logs kept at a time.
 KEPT_LOGS = 25
 
+# Path to the night theme file.
+NIGHT_THEME_PATH = "night_theme.yaml"
+
 # Create steering_wheel logger.
 while (len(os.listdir("logs")) > KEPT_LOGS - 1):
     fileList = dict()
@@ -35,6 +38,10 @@ wheelLogger = logging.getLogger('wheelLogger')
 wheelLogger.debug("Starting log...")
 
 class SteeringWheel(can.notifier.Notifier):
+
+    # Default background color
+    BACKGROUND_COLOR = pygame.Color("white")
+
     """ An instance of the steering wheel display.
 
     Parameters
@@ -59,8 +66,8 @@ class SteeringWheel(can.notifier.Notifier):
             "GearDisplay": GearDisplay,
             "VoltageBox": VoltageBox,
             "RPM_Display": RPM_Display,
-            "DriverWarning":DriverWarning,
-            "Background":Background
+            "DriverWarning": DriverWarning,
+            "Background": Background
         }
 
         # List of elements that need access to multiple channels.
@@ -122,13 +129,18 @@ class SteeringWheel(can.notifier.Notifier):
         '''
 
         # Write black to the screen before every blit.
-        self.surface.fill((255, 255, 255))
+        self.surface.fill(self.BACKGROUND_COLOR)
 
         for element in self.elements:
             element.updateElement()
 
         # "Flip" the display (update the display with the newly created surface.
         pygame.display.flip()
+
+    def changeTheme(self, fileName):
+        for element in self.elements:
+            element.changeTheme(fileName)
+        self.BACKGROUND_COLOR = pygame.Color("black")
 
 def setup():
     # Create the CAN bus. SocketCan is the kernel support for CAN,
@@ -162,9 +174,12 @@ def setup():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    sys.exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                sys.exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_n:
+                wheel.changeTheme(NIGHT_THEME_PATH)
+
+
         # Update screen at given refresh rate.
         if (time.time() - lastUpdateTime > 1 / REFRESH_RATE):
             # preUpdate = time.time()
