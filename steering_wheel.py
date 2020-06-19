@@ -18,6 +18,7 @@ REFRESH_RATE = 25
 # Path to the config file.
 CONFIG_PATH = "config.yaml"
 
+# Number of logs kept at a time.
 KEPT_LOGS = 25
 
 # Create steering_wheel logger.
