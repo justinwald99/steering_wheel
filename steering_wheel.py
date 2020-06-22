@@ -21,6 +21,9 @@ CONFIG_PATH = "config.yaml"
 # Number of logs kept at a time.
 KEPT_LOGS = 25
 
+# Default theme path.
+DEFAULT_THEME_PATH = "default_theme.yaml"
+
 # Path to the night theme file.
 NIGHT_THEME_PATH = "night_theme.yaml"
 
@@ -70,6 +73,10 @@ class SteeringWheel(can.notifier.Notifier):
             "Background": Background
         }
 
+        # Create the theme singleton to provide colors to ui_elements.
+        self.theme = dict()
+        self.changeTheme(DEFAULT_THEME_PATH)
+
         # List of elements that need access to multiple channels.
         self.multiChannelElements = [
             "DriverWarning"
@@ -101,7 +108,7 @@ class SteeringWheel(can.notifier.Notifier):
                 for channel in self.listeners[0].channels:
                     if channel.name in element['channel_list']:
                         channels.update({channel.name: channel})
-                self.elements.append(self.constructors[element['type']](self.surface, channels, **element))
+                self.elements.append(self.constructors[element['type']](self.surface, channels, self.theme, **element))
 
             # Single channel elements.
             elif element['type'] in self.constructors:
@@ -116,7 +123,7 @@ class SteeringWheel(can.notifier.Notifier):
                     wheelLogger.warning(f"Invalid can channel: {element['channel_name']}")
                 else:
                     # Call the correct constructor.
-                    self.elements.append(self.constructors[element['type']](self.surface, canChannel, **element))
+                    self.elements.append(self.constructors[element['type']](self.surface, canChannel, self.theme, **element))
                     wheelLogger.debug(f"UI element loaded: {element['type']}.")
             
             # Invalid element.
@@ -129,7 +136,7 @@ class SteeringWheel(can.notifier.Notifier):
         '''
 
         # Write black to the screen before every blit.
-        self.surface.fill(self.BACKGROUND_COLOR)
+        self.surface.fill(self.theme['BACKGROUND_COLOR'])
 
         for element in self.elements:
             element.updateElement()
@@ -138,9 +145,20 @@ class SteeringWheel(can.notifier.Notifier):
         pygame.display.flip()
 
     def changeTheme(self, fileName):
-        for element in self.elements:
-            element.changeTheme(fileName)
-        self.BACKGROUND_COLOR = pygame.Color("black")
+        '''Loads in a new theme from a fileName and updates the reference used by all ui_elements.
+
+        Parameters
+        ----------
+        fileName : string
+            Path to the file that contains the theme information to use.
+
+        '''
+        with open(fileName, "r") as theme:
+            loadedTheme = yaml.safe_load(theme)
+        # Convert the hex colors in pygame.Color objects.
+        for name, color in loadedTheme.items():
+            self.theme.update({name: pygame.Color(color)})
+        
 
 def setup():
     # Create the CAN bus. SocketCan is the kernel support for CAN,
@@ -170,14 +188,19 @@ def setup():
     rpm = 8000
     inc = .15
     lastUpdateTime = time.time()
+    nightMode = False
     while 1:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 sys.exit()
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_n:
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_n and nightMode == False:
+                nightMode = True
                 wheel.changeTheme(NIGHT_THEME_PATH)
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_n:
+                nightMode = False
+                wheel.changeTheme(DEFAULT_THEME_PATH)
 
 
         # Update screen at given refresh rate.

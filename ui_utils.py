@@ -6,8 +6,13 @@ import yaml
 # Location of the default theme
 DEFAULT_THEME_PATH = "default_theme.yaml"
 
-class Gauge():
-    def __init__(self, surface, canResource, x_coord=0, y_coord=0, label="no name", unit="", min_val=0, max_val=1):
+class Themeable():
+    def __init__(self, theme):
+        self.theme = theme
+
+class Gauge(Themeable):
+    def __init__(self, surface, canResource, theme, x_coord=0, y_coord=0, label="no name", unit="", min_val=0, max_val=1):
+        super().__init__(theme)
         self.surface = surface
         self.x_coord = x_coord
         self.y_coord = y_coord
@@ -16,8 +21,8 @@ class Gauge():
         self.unit = unit
         self.min = min_val
         self.max = max_val
+        self.theme = theme
         
-        self.changeTheme(DEFAULT_THEME_PATH)
         self.value = min_val
 
     def updateElement(self):
@@ -27,12 +32,6 @@ class Gauge():
     def draw(self):
         pass
 
-    def changeTheme(self, fileName):
-        with open(fileName, "r") as themeFile:
-            self.theme = yaml.safe_load(themeFile)
-        for name, color in self.theme.items():
-            self.theme[name] = pygame.Color(color)
-
 # Vertical bar gauge.
 class BarGauge(Gauge):
 
@@ -41,8 +40,8 @@ class BarGauge(Gauge):
     GAUGE_OUTLINE_WIDTH = 5
     TEXT_SIZE = 24
 
-    def __init__(self, surface, canResource, x_coord=0, y_coord=0, label="no name", unit="", min_val=0, max_val=1, **kwargs):
-        super().__init__(surface, canResource=canResource, x_coord=x_coord, y_coord=y_coord, label=label, unit=unit, min_val=min_val, max_val=max_val)
+    def __init__(self, surface, canResource, theme, x_coord=0, y_coord=0, label="no name", unit="", min_val=0, max_val=1, **kwargs):
+        super().__init__(surface, canResource, theme, x_coord=x_coord, y_coord=y_coord, label=label, unit=unit, min_val=min_val, max_val=max_val)
 
     def draw(self):
 
@@ -78,8 +77,8 @@ class BarGauge(Gauge):
 class GearDisplay(Gauge):
     GEAR_SIZE = 256
 
-    def __init__(self, surface, canResource, **kwargs):
-        super().__init__(surface, canResource)
+    def __init__(self, surface, canResource, theme, **kwargs):
+        super().__init__(surface, canResource, theme)
 
     def draw(self):
         gearFont = pygame.font.Font('freesansbold.ttf', self.GEAR_SIZE)
@@ -91,8 +90,8 @@ class VoltageBox(Gauge):
     BORDER_THICKNESS = 5
     TEXT_SIZE = 64
 
-    def __init__(self, surface, canResource, **kwargs):
-        super().__init__(surface, canResource)
+    def __init__(self, surface, canResource, theme, **kwargs):
+        super().__init__(surface, canResource, theme)
 
     def draw(self):
         backgroundRect = pygame.Rect((0,0), (150, 80))
@@ -108,15 +107,15 @@ class RPM_Display(Gauge):
     TEXT_SIZE = 64
     VERTICAL_POS = 10
 
-    def __init__(self, surface, canResource, **kwargs):
-        super().__init__(surface, canResource)
+    def __init__(self, surface, canResource, theme, **kwargs):
+        super().__init__(surface, canResource, theme)
 
     def draw(self):
         rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
         rpmText = rpmFont.render(f'{int(self.value)} RPM', False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(rpmText, (self.surface.get_width() / 2 - rpmText.get_width() / 2, self.VERTICAL_POS))
 
-class DriverWarning():
+class DriverWarning(Themeable):
 
     # List of valid conditional operators.
     OPERATORS = ["<", ">", "<=", ">="]
@@ -133,7 +132,8 @@ class DriverWarning():
     TEXT_TRUNCATE_LENGTH = 9
     
 
-    def __init__(self, surface, channels, x_coord=0, y_coord=0, conditionals=[], imagePath="", **kwargs):
+    def __init__(self, surface, channels, theme, x_coord=0, y_coord=0, conditionals=[], imagePath="", **kwargs):
+        super().__init__(theme)
         self.surface = surface
         self.channels = channels
         self.x_coord = x_coord
@@ -172,12 +172,13 @@ class DriverWarning():
                 return True
         return False
 
-class Background():
+class Background(Themeable):
 
     THRESHOLD=11000
     MAX_VALUE=12500
 
-    def __init__(self, surface, canResource, imagePath="", **kwargs):
+    def __init__(self, surface, canResource, theme, imagePath="", **kwargs):
+        super().__init__(theme)
         self.surface = surface
         self.canResource = canResource
         self.imagePath = imagePath
@@ -192,8 +193,3 @@ class Background():
         alpha = (self.value - self.THRESHOLD)/(self.MAX_VALUE - self.THRESHOLD) * 255
         self.image.set_alpha(alpha)
         self.surface.blit(self.image, (0, 0))
-
-    def changeTheme(self, fileName):
-        with open(fileName, "r") as theme:
-            theme = yaml.safe_load(theme)
-        self.image.fill(pygame.Color(theme['SECONDARY_COLOR']))
