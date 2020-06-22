@@ -22,10 +22,10 @@ CONFIG_PATH = "config.yaml"
 KEPT_LOGS = 25
 
 # Default theme path.
-DEFAULT_THEME_PATH = "default_theme.yaml"
+DEFAULT_THEME_PATH = "themes/default_theme.yaml"
 
 # Path to the night theme file.
-NIGHT_THEME_PATH = "night_theme.yaml"
+NIGHT_THEME_PATH = "themes/night_theme.yaml"
 
 # Create steering_wheel logger.
 while (len(os.listdir("logs")) > KEPT_LOGS - 1):

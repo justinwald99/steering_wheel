@@ -3,9 +3,6 @@ import logging
 import pygame
 import yaml
 
-# Location of the default theme
-DEFAULT_THEME_PATH = "default_theme.yaml"
-
 class Themeable():
     def __init__(self, theme):
         self.theme = theme
