@@ -186,8 +186,9 @@ class Background(Themeable):
         self.image = pygame.image.load(self.imagePath)
 
     def updateElement(self):
-        self.value = self.canResource.getValue()
-        self.draw()
+        if self.theme['BACKGROUND_COLOR'] == pygame.Color("white"):
+            self.value = self.canResource.getValue()
+            self.draw()
 
     def draw(self):
         alpha = (self.value - self.THRESHOLD)/(self.MAX_VALUE - self.THRESHOLD) * 255
