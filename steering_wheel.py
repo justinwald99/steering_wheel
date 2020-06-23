@@ -69,12 +69,12 @@ class SteeringWheel(can.notifier.Notifier):
     def __init__(self, bus):
         # Initialize the display.
         pygame.init()
-        self.surface = pygame.display.set_mode([720, 480])
+        self.surface = pygame.display.set_mode([0,0], pygame.FULLSCREEN)
         self.elements = list()
         wheelLogger.debug("Display initialized.")
         self.isNightMode = False
-        self.brightness = 1
-
+        self.brightnessControl = PWMLED(BRIGHTNESS_PIN, frequency=1000)
+        self.changeBrightness()
         # Initialize the Notifier componoent.
         super().__init__(bus, list((CanResource("Custom Data Set", list()),)))
 
@@ -192,10 +192,7 @@ class SteeringWheel(can.notifier.Notifier):
         """Change the brightness of the screen in 25% incremenets.
 
         """
-        brightnessControl = PWMLED(BRIGHTNESS_PIN, frequency=1000)
-        self.brightness = (self.brightness - .25) % 1.25
-        brightnessControl.value = self.brightness
-        
+        self.brightnessControl.value = (self.brightnessControl.value - .25) % 1.25
 
 def setup():
     """Run on steering wheel startup.

@@ -14,7 +14,7 @@ from gpiozero.pins.mock import MockFactory, MockPWMPin
 from gpiozero import Device, Button, PWMLED
 
 # Set the default pin factory to a mock factory
-Device.pin_factory = MockFactory(pin_class=MockPWMPin)
+# Device.pin_factory = MockFactory(pin_class=MockPWMPin)
 
 from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, DriverWarning, Background
 from steering_wheel import SteeringWheel
@@ -71,12 +71,12 @@ def setup():
     wheel = SteeringWheel(canBus)
 
     # Create the right button below the screen.
-    button = Button(BR_BUTTON_PIN, pull_up=False)
+    button = Button(BR_BUTTON_PIN, pull_up=False, pin_factory=MockFactory())
     button.when_held = wheel.toggleNightMode
     button.when_activated = wheel.changeBrightness
 
     # Get a reference to mock pin 16 (used by the button)
-    btn_pin = Device.pin_factory.pin(BR_BUTTON_PIN)
+    btn_pin = button.pin_factory.pin(BR_BUTTON_PIN)
 
     testBus = can.interface.Bus(bustype="virtual", bitrate=1000000)
     testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x00\x00\x09\xC4\x08\x34\x07\x6C')))
