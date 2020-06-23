@@ -1,71 +1,115 @@
-from can_read import CanResourceChannel, CanResource
-from can import Message
-from ui_utils import BarGauge, GearDisplay, VoltageBox, RPM_Display
-import pygame
+import datetime
+import logging
+import os
 import sys
+import time
+import random
 
-class TestCanResource():
-    def __init__(self, name, channels):
-        self.name = name
-        self.channels = channels
+import can
+import pygame
+import yaml
 
-channels = list()
-channels.append(CanResourceChannel('Oil P', .1))
-channels.append(CanResourceChannel('Oil T', .1))
-channels.append(CanResourceChannel('Water T', .1))
-channels.append(CanResourceChannel('Fuel P', .1))
-channels.append(CanResourceChannel('Gear Display', 1))
-channels.append(CanResourceChannel('Voltage', .01))
-channels.append(CanResourceChannel('RPM', 1))
+from can_read import CanResource, CanResourceChannel
+from gpiozero.pins.mock import MockFactory, MockPWMPin
+from gpiozero import Device, Button, PWMLED
 
-testResource = CanResource('Custom Data Set', channels)
-msg = Message()
-msg2 = Message()
-msg3 = Message()
-# key: [index] [oil p] [oil t] [water t]
-# value: [0] [250] [210] [190]
-# data: [0] [2500] [2100] [1900]
-msg.data = bytearray(b'\x00\x00\x09\xC4\x08\x34\x07\x6C')
-# key: [index] [fuel p] [gear display] [voltage]
-# value: [1] [290] [3] [12.9]
-# data: [1] [2900] [3] [1290]
-msg2.data = bytearray(b'\x01\x00\x0B\x54\x00\x03\x05\x0A')
-# key: [index] [rpm] [] []
-# value: [2] [2500] [0] [0]
-# data: [2] [2500] [0] [0]
-msg3.data = bytearray(b'\x02\x00\x09\xC4')
+# Set the default pin factory to a mock factory
+Device.pin_factory = MockFactory(pin_class=MockPWMPin)
 
-testResource.on_message_received(msg)
-testResource.on_message_received(msg2)
-testResource.on_message_received(msg3)
+from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, DriverWarning, Background
+from steering_wheel import SteeringWheel
 
-pygame.init()
-screen = pygame.display.set_mode([720, 480])
+# BCM pin number of the bottom right button.
+BR_BUTTON_PIN = 16
 
-gauges = list()
-gauges.append(BarGauge(screen, (100, 150), "Oil P", channels[0], 'PSI', 0, 300))
-gauges.append(BarGauge(screen, (220, 150), "Oil T", channels[1], 'F', 0, 250))
-gauges.append(BarGauge(screen, (460, 150), "Water T", channels[2], 'F', 0, 220))
-gauges.append(BarGauge(screen, (580, 150), "Fuel P", channels[3], 'PSI', 0, 500))
-gauges.append(GearDisplay(screen, None, "Gear", channels[4], None, 0, 6))
-gauges.append(VoltageBox(screen, None, "Voltage", channels[5], 'Volts', 0, 15))
-gauges.append(RPM_Display(screen, None, "RPM", channels[6], 'rpm', 0, 15000))
+# BCM pin number of the left LED.
+L_LED_PIN = 5
 
-# Watch for escape key.
-while 1:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                sys.exit()
+# BCM pin number of the right LED.
+R_LED_PIN = 6
 
-    # Write black to the screen before every blit.
-    screen.fill((255, 255, 255))
+# BCM pin for PWM brightness control of the screen.
+BRIGHTNESS_PIN = 18
+
+# Refresh rate in Hz.
+REFRESH_RATE = 25
+
+# Path to the config file.
+CONFIG_PATH = "config.yaml"
+
+# Number of logs kept at a time.
+KEPT_LOGS = 25
+
+# Default theme path.
+DEFAULT_THEME_PATH = "themes/default_theme.yaml"
+
+# Path to the night theme file.
+NIGHT_THEME_PATH = "themes/night_theme.yaml"
+
+def setup():
+    """Run on steering wheel startup.
+
+    """
+
+    # Create the CAN bus. SocketCan is the kernel support for CAN,
+    # can0 is the network created with SocketCan, and the bitrate
+    # of the network is 1000000 bits/s.
+
+    # ########## REAL CAN BUS ######### #
+    # canBus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=1000000)
+    # ########## TEST CAN BUS ######### #
+    canBus = can.interface.Bus(bustype='virtual', bitrate=1000000)
+
+    # Add a filter to only listen on CAN ID 10, the custom data set ID from motec.
+    # canBus.set_filters([{"can_id": 10, "can_mask": 0xF, "extended": False}])
+
     
-    # Update the gauges
-    for gauge in gauges:
-        gauge.updateGauge()
+    # # Create the notifier object that will listen to the CAN bus and
+    # # notify any Listeners registered to it if a message is recieved.
+    # canNotifier = can.notifier.Notifier(canBus, resources)
 
-    # "Flip" the display (update the display with the newly created surface.
-    pygame.display.flip()
+    wheel = SteeringWheel(canBus)
+
+    # Create the right button below the screen.
+    button = Button(BR_BUTTON_PIN, pull_up=False)
+    button.when_held = wheel.toggleNightMode
+    button.when_activated = wheel.changeBrightness
+
+    # Get a reference to mock pin 16 (used by the button)
+    btn_pin = Device.pin_factory.pin(BR_BUTTON_PIN)
+
+    testBus = can.interface.Bus(bustype="virtual", bitrate=1000000)
+    testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x00\x00\x09\xC4\x08\x34\x07\x6C')))
+    testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x01\x00\x0B\x54\x00\x03\x05\x0A')))
+    testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x02\x00\x09\xC4')))
+
+    rpm = 8000
+    inc = .15
+    lastUpdateTime = time.time()
+    while 1:
+        for event in pygame.event.get():
+            # Exit button.
+            if event.type == pygame.QUIT:
+                sys.exit()
+            # Escape to stop running.
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                sys.exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_b:
+                btn_pin.drive_high()
+            else:
+                btn_pin.drive_low()
+
+        # Update screen at given refresh rate.
+        if (time.time() - lastUpdateTime > 1 / REFRESH_RATE):
+            # preUpdate = time.time()
+            wheel.update()
+            # print(f"cpu_fps: {int(1 / (time.time() - preUpdate))}")
+            # print(f"real_fps: {int(1 / (time.time() - lastUpdateTime))}")
+            lastUpdateTime = time.time()
+        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([0,0,1,int(random.random()*255),1,int(random.random()*255),1,int(random.random()*255)]))))
+        rpm = rpm + inc
+        if rpm > 12500 or rpm < 8000: inc = inc * -1
+        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([2,0,int(rpm / 256 % 256), int(rpm % 256)]))))
+
+if __name__ == '__main__':
+    setup()
