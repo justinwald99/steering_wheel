@@ -2,6 +2,16 @@ import logging
 
 import pygame
 import yaml
+from gpiozero import LED
+
+# BCM pin number of the left LED.
+L_LED_PIN = 5
+
+# BCM pin number of the right LED.
+R_LED_PIN = 6
+
+leftLED = LED(L_LED_PIN)
+rightLED = LED(R_LED_PIN)
 
 class Themeable():
     """Quasi-interface to indicate that a ui_element is themable.
@@ -329,8 +339,17 @@ class DriverWarning(Themeable):
         """Check the list of conditionals and draw the icon if needed.
 
         """
-        if self.checkRules():
+        status = self.checkRules()
+        if status == 1:
+            leftLED.on()
             self.draw()
+        elif status == 2:
+            leftLED.on()
+            rightLED.on()
+            self.draw()
+        else:
+            leftLED.off()
+            rightLED.off()
 
     def draw(self):
         """Draw the graphical elements to the surface for this icon.
@@ -354,29 +373,38 @@ class DriverWarning(Themeable):
             channel = parsedValues[0]
             operator = parsedValues[1]
             value = parsedValues[2]
+            isCritical = len(parsedValues) == 4 and parsedValues[3] == "critical"
             if channel not in self.channels.keys() or operator not in self.OPERATORS:
                 print(f"Invalid contional: {condition}")
                 exit(1)
-            self.rules.append([self.channels[channel], operator, value])
+            self.rules.append([self.channels[channel], operator, value, isCritical])
 
     def checkRules(self):
         """Check the rules of this warning against updated values of the can channels.
 
         Returns
         -------
-        boolean
-            True if any of the conditions are met.
+        int
+            0 if no rules are met, 1 if a warning is met, and 2 if a critical rule is met.
 
         """
+        rtn = 0
         for rule in self.rules:
-            if eval(f"{rule[0].getValue()} {rule[1]} {rule[2]}"):
-                self.wheelLogger.info(f"{rule[0].name} {rule[1]} {rule[2]}")
+            if eval(f"{rule[0].getValue()} {rule[1]} {rule[2]}") and rule[3]:
+                self.wheelLogger.warning(f"{rule[0].name} {rule[1]} {rule[2]}")
                 # Put the rule's can channel below the warning.
                 rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
                 rpmText = rpmFont.render(f"{rule[0].name[:self.TEXT_TRUNCATE_LENGTH]}", False, self.theme['PRIMARY_COLOR'])
                 self.surface.blit(rpmText, (self.x_coord, self.y_coord + self.image.get_height()))
-                return True
-        return False
+                rtn = 2
+            elif eval(f"{rule[0].getValue()} {rule[1]} {rule[2]}"):
+                self.wheelLogger.warning(f"{rule[0].name} {rule[1]} {rule[2]}")
+                # Put the rule's can channel below the warning.
+                rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
+                rpmText = rpmFont.render(f"{rule[0].name[:self.TEXT_TRUNCATE_LENGTH]}", False, self.theme['PRIMARY_COLOR'])
+                self.surface.blit(rpmText, (self.x_coord, self.y_coord + self.image.get_height()))
+                rtn = 1
+        return rtn
 
 class Background(Themeable):
     """Viper-inspired background animation that activates between a given RPM threshold.

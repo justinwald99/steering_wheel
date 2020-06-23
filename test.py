@@ -14,19 +14,13 @@ from gpiozero.pins.mock import MockFactory, MockPWMPin
 from gpiozero import Device, Button, PWMLED
 
 # Set the default pin factory to a mock factory
-# Device.pin_factory = MockFactory(pin_class=MockPWMPin)
+Device.pin_factory = MockFactory(pin_class=MockPWMPin)
 
 from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, DriverWarning, Background
 from steering_wheel import SteeringWheel
 
 # BCM pin number of the bottom right button.
 BR_BUTTON_PIN = 16
-
-# BCM pin number of the left LED.
-L_LED_PIN = 5
-
-# BCM pin number of the right LED.
-R_LED_PIN = 6
 
 # BCM pin for PWM brightness control of the screen.
 BRIGHTNESS_PIN = 18

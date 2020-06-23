@@ -79,5 +79,5 @@ ui_elements:
     channel_list: [oil_pressure, engine_rpm]
     x_coord: 641
     y_coord: 240
-    conditionals: ["oil_pressure > 200", "engine_rpm > 11000"]
+    conditionals: ["oil_pressure > 200", "engine_rpm > 11000 critical"]
     imagePath: assets/generic_warning.png

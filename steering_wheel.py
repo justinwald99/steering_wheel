@@ -16,12 +16,6 @@ from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, DriverWarni
 # BCM pin number of the bottom right button.
 BR_BUTTON_PIN = 16
 
-# BCM pin number of the left LED.
-L_LED_PIN = 5
-
-# BCM pin number of the right LED.
-R_LED_PIN = 6
-
 # BCM pin for PWM brightness control of the screen.
 BRIGHTNESS_PIN = 18
 
@@ -69,7 +63,7 @@ class SteeringWheel(can.notifier.Notifier):
     def __init__(self, bus):
         # Initialize the display.
         pygame.init()
-        self.surface = pygame.display.set_mode([0,0], pygame.FULLSCREEN)
+        self.surface = pygame.display.set_mode([720, 480])
         self.elements = list()
         wheelLogger.debug("Display initialized.")
         self.isNightMode = False
