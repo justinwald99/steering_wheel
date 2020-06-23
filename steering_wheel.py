@@ -27,14 +27,14 @@ DEFAULT_THEME_PATH = "themes/default_theme.yaml"
 # Path to the night theme file.
 NIGHT_THEME_PATH = "themes/night_theme.yaml"
 
-# Create steering_wheel logger.
+# Check if there are more than KEPT_LOGS number of log files, delete oldest if neccesary.
 while (len(os.listdir("logs")) > KEPT_LOGS - 1):
     fileList = dict()
     for logFile in os.listdir("logs"):
         fileList.update({os.path.getctime(f"logs/{logFile}"): logFile})
     sortedFiles = list(fileList.keys())
     os.remove(f"logs/{fileList[sortedFiles[0]]}")
-
+# Create a new logfile with timestamp.
 logging.basicConfig(filename=f"logs/steering_wheel_log_{datetime.datetime.now().strftime('%I.%M.%S%p_%a-%b-%d-%Y')}.txt", level="DEBUG")
 wheelLogger = logging.getLogger('wheelLogger')
     
@@ -86,6 +86,9 @@ class SteeringWheel(can.notifier.Notifier):
         self.readConfig()
 
     def readConfig(self):
+        """Read the contents of the config file and create the indicated items.
+
+        """
         # Open the config file.
         with open(CONFIG_PATH, 'r') as configFile:
             try:
@@ -161,6 +164,9 @@ class SteeringWheel(can.notifier.Notifier):
         
 
 def setup():
+    """Run on steering wheel startup.
+
+    """
     # Create the CAN bus. SocketCan is the kernel support for CAN,
     # can0 is the network created with SocketCan, and the bitrate
     # of the network is 1000000 bits/s.
@@ -191,13 +197,17 @@ def setup():
     nightMode = False
     while 1:
         for event in pygame.event.get():
+            # Exit button.
             if event.type == pygame.QUIT:
                 sys.exit()
+            # Escape to stop running.
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 sys.exit()
+            # n to toggle nightmode on.
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_n and nightMode == False:
                 nightMode = True
                 wheel.changeTheme(NIGHT_THEME_PATH)
+            # n to toggle nightmode off.
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_n:
                 nightMode = False
                 wheel.changeTheme(DEFAULT_THEME_PATH)

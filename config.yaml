@@ -17,6 +17,8 @@ ui_elements:
   - type: Background
     channel_name: engine_rpm
     imagePath: assets/wmf_wolf.png
+    min_val: 11000
+    max_val: 12500
   - type: BarGauge
     channel_name: oil_pressure
     label: Oil P
