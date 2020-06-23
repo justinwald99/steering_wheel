@@ -10,7 +10,20 @@ import pygame
 import yaml
 
 from can_read import CanResource, CanResourceChannel
+from gpiozero import Button, PWMLED
 from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, DriverWarning, Background
+
+# BCM pin number of the bottom right button.
+BR_BUTTON_PIN = 16
+
+# BCM pin number of the left LED.
+L_LED_PIN = 5
+
+# BCM pin number of the right LED.
+R_LED_PIN = 6
+
+# BCM pin for PWM brightness control of the screen.
+BRIGHTNESS_PIN = 18
 
 # Refresh rate in Hz.
 REFRESH_RATE = 25
@@ -59,6 +72,8 @@ class SteeringWheel(can.notifier.Notifier):
         self.surface = pygame.display.set_mode([720, 480])
         self.elements = list()
         wheelLogger.debug("Display initialized.")
+        self.isNightMode = False
+        self.brightness = 1
 
         # Initialize the Notifier componoent.
         super().__init__(bus, list((CanResource("Custom Data Set", list()),)))
@@ -161,6 +176,25 @@ class SteeringWheel(can.notifier.Notifier):
         # Convert the hex colors in pygame.Color objects.
         for name, color in loadedTheme.items():
             self.theme.update({name: pygame.Color(color)})
+
+    def toggleNightMode(self):
+        """Toggle nightmode on the screen.
+
+        """
+        if self.isNightMode:
+            self.isNightMode = False
+            self.changeTheme(DEFAULT_THEME_PATH)
+        else:
+            self.isNightMode = True
+            self.changeTheme(NIGHT_THEME_PATH)
+
+    def changeBrightness(self):
+        """Change the brightness of the screen in 25% incremenets.
+
+        """
+        brightnessControl = PWMLED(BRIGHTNESS_PIN, frequency=1000)
+        self.brightness = (self.brightness - .25) % 1.25
+        brightnessControl.value = self.brightness
         
 
 def setup():
@@ -171,30 +205,20 @@ def setup():
     # can0 is the network created with SocketCan, and the bitrate
     # of the network is 1000000 bits/s.
 
-    # ########## REAL CAN BUS ######### #
-    # canBus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=1000000)
-    # ########## TEST CAN BUS ######### #
-    canBus = can.interface.Bus(bustype='virtual', bitrate=1000000)
+    # Start the can bus.
+    canBus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=1000000)
 
     # Add a filter to only listen on CAN ID 10, the custom data set ID from motec.
-    # canBus.set_filters([{"can_id": 10, "can_mask": 0xF, "extended": False}])
-
-    
-    # # Create the notifier object that will listen to the CAN bus and
-    # # notify any Listeners registered to it if a message is recieved.
-    # canNotifier = can.notifier.Notifier(canBus, resources)
+    canBus.set_filters([{"can_id": 10, "can_mask": 0xF, "extended": False}])
 
     wheel = SteeringWheel(canBus)
 
-    testBus = can.interface.Bus(bustype="virtual", bitrate=1000000)
-    testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x00\x00\x09\xC4\x08\x34\x07\x6C')))
-    testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x01\x00\x0B\x54\x00\x03\x05\x0A')))
-    testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x02\x00\x09\xC4')))
+    # Create the right button below the screen.
+    button = Button(BR_BUTTON_PIN, pull_up=False)
+    button.when_held = wheel.toggleNightMode
+    button.when_activated = wheel.changeBrightness
 
-    rpm = 8000
-    inc = .15
     lastUpdateTime = time.time()
-    nightMode = False
     while 1:
         for event in pygame.event.get():
             # Exit button.
@@ -203,15 +227,6 @@ def setup():
             # Escape to stop running.
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 sys.exit()
-            # n to toggle nightmode on.
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_n and nightMode == False:
-                nightMode = True
-                wheel.changeTheme(NIGHT_THEME_PATH)
-            # n to toggle nightmode off.
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_n:
-                nightMode = False
-                wheel.changeTheme(DEFAULT_THEME_PATH)
-
 
         # Update screen at given refresh rate.
         if (time.time() - lastUpdateTime > 1 / REFRESH_RATE):
@@ -220,10 +235,6 @@ def setup():
             # print(f"cpu_fps: {int(1 / (time.time() - preUpdate))}")
             # print(f"real_fps: {int(1 / (time.time() - lastUpdateTime))}")
             lastUpdateTime = time.time()
-        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([0,0,1,int(random.random()*255),1,int(random.random()*255),1,int(random.random()*255)]))))
-        rpm = rpm + inc
-        if rpm > 12500 or rpm < 8000: inc = inc * -1
-        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([2,0,int(rpm / 256 % 256), int(rpm % 256)]))))
 
 if __name__ == '__main__':
     setup()
