@@ -17,7 +17,7 @@ from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, DriverWarni
 BR_BUTTON_PIN = 16
 
 # BCM pin for PWM brightness control of the screen.
-BRIGHTNESS_PIN = 18
+BRIGHTNESS_PIN = 14
 
 # Refresh rate in Hz.
 REFRESH_RATE = 25
