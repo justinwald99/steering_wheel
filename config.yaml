@@ -56,6 +56,8 @@ ui_elements:
   - type: VoltageBox
     channel_name: battery_voltage
   - type: RPM_Display
+    threshold_val: 10000
+    max_val: 12500
     channel_name: engine_rpm
   - type: DriverWarning
     channel_list: [battery_voltage]

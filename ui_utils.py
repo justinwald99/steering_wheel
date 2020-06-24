@@ -1,5 +1,7 @@
 import logging
 
+import board
+import neopixel
 import pygame
 import yaml
 from gpiozero import LED
@@ -12,6 +14,8 @@ R_LED_PIN = 6
 
 leftLED = LED(L_LED_PIN)
 rightLED = LED(R_LED_PIN)
+
+pixels = neopixel.NeoPixel(board.D18, 16)
 
 class Themeable():
     """Quasi-interface to indicate that a ui_element is themable.
@@ -267,16 +271,35 @@ class RPM_Display(Gauge):
     # Vertical distance, in pixels, from the top of the screen.
     VERTICAL_POS = 10
 
-    def __init__(self, surface, canResource, theme, **kwargs):
-        super().__init__(surface, canResource, theme)
+    # Number of Neopix LEDS.
+    TOTAL_NEOPIX_LEDS = 16
+
+    # Array for the color of the shift lights at different levels.
+    NEOPIX_COLOR_ARRAY = [(50, 168, 82),(50, 168, 82),(247, 255, 5),(247, 255, 5),(255, 5, 5),(255, 5, 5),(5, 59, 255),(5, 59, 255)]
+
+    def __init__(self, surface, canResource, theme, threshold_val=10000, max_val=13000, **kwargs):
+        self.threshold = threshold_val
+        super().__init__(surface, canResource, theme, max_val=max_val)
 
     def draw(self):
         """Draw the graphical elements onto the screen.
 
         """
+        self.updateNeoPixels()
         rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
         rpmText = rpmFont.render(f'{int(self.value)} RPM', False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(rpmText, (self.surface.get_width() / 2 - rpmText.get_width() / 2, self.VERTICAL_POS))
+    
+    def updateNeoPixels(self):
+        pct = (self.value - self.threshold) / (self.max - self.threshold)
+        pct = max(pct, 0)
+        pct = min(pct, 1)
+        numLeds = round(pct * self.TOTAL_NEOPIX_LEDS / 2)
+        for i in range(0, numLeds):
+            pixels[i] = self.NEOPIX_COLOR_ARRAY[i]
+        for i in range (self.TOTAL_NEOPIX_LEDS - 1, self.TOTAL_NEOPIX_LEDS - 1 - numLeds, -1):
+            colorIndex = self.TOTAL_NEOPIX_LEDS - i - 1
+            pixels[i] = self.NEOPIX_COLOR_ARRAY[colorIndex]
 
 class DriverWarning(Themeable):
     """A warning icon that will apprear if a given conditional is encountered.
