@@ -1,0 +1,5 @@
+(fp_lib_table
+  (lib (name "Library Loader")(type KiCad)(uri "C:/Program Files (x86)/SamacSys/Library Loader")(options "")(descr ""))
+  (lib (name Cap)(type KiCad)(uri ${KIPRJMOD}/Cap.pretty)(options "")(descr ""))
+  (lib (name KiCad)(type KiCad)(uri C:/Users/mchld/Downloads/T520D477M006ATE015/KiCad)(options "")(descr ""))
+)
