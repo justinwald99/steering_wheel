@@ -1,0 +1,9 @@
+Plot file “C:\Users\mchld\Documents\NCSU\WolfPack Motorsports\KiCad\SteeringWheelAttempt2\SteeringWheelKicad\SteeringWheel_v3_Gerb\SteeringWheelKicad-F_Cu.gbr” created.
+Plot file “C:\Users\mchld\Documents\NCSU\WolfPack Motorsports\KiCad\SteeringWheelAttempt2\SteeringWheelKicad\SteeringWheel_v3_Gerb\SteeringWheelKicad-B_Cu.gbr” created.
+Plot file “C:\Users\mchld\Documents\NCSU\WolfPack Motorsports\KiCad\SteeringWheelAttempt2\SteeringWheelKicad\SteeringWheel_v3_Gerb\SteeringWheelKicad-F_Paste.gbr” created.
+Plot file “C:\Users\mchld\Documents\NCSU\WolfPack Motorsports\KiCad\SteeringWheelAttempt2\SteeringWheelKicad\SteeringWheel_v3_Gerb\SteeringWheelKicad-B_Paste.gbr” created.
+Plot file “C:\Users\mchld\Documents\NCSU\WolfPack Motorsports\KiCad\SteeringWheelAttempt2\SteeringWheelKicad\SteeringWheel_v3_Gerb\SteeringWheelKicad-F_SilkS.gbr” created.
+Plot file “C:\Users\mchld\Documents\NCSU\WolfPack Motorsports\KiCad\SteeringWheelAttempt2\SteeringWheelKicad\SteeringWheel_v3_Gerb\SteeringWheelKicad-B_SilkS.gbr” created.
+Plot file “C:\Users\mchld\Documents\NCSU\WolfPack Motorsports\KiCad\SteeringWheelAttempt2\SteeringWheelKicad\SteeringWheel_v3_Gerb\SteeringWheelKicad-F_Mask.gbr” created.
+Plot file “C:\Users\mchld\Documents\NCSU\WolfPack Motorsports\KiCad\SteeringWheelAttempt2\SteeringWheelKicad\SteeringWheel_v3_Gerb\SteeringWheelKicad-B_Mask.gbr” created.
+Plot file “C:\Users\mchld\Documents\NCSU\WolfPack Motorsports\KiCad\SteeringWheelAttempt2\SteeringWheelKicad\SteeringWheel_v3_Gerb\SteeringWheelKicad-Edge_Cuts.gbr” created.
