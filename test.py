@@ -14,7 +14,7 @@ from gpiozero.pins.mock import MockFactory, MockPWMPin
 from gpiozero import Device, Button, PWMLED
 
 # Set the default pin factory to a mock factory
-# Device.pin_factory = MockFactory(pin_class=MockPWMPin)
+Device.pin_factory = MockFactory(pin_class=MockPWMPin)
 
 from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, DriverWarning, Background
 from steering_wheel import SteeringWheel

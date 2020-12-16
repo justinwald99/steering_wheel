@@ -1,9 +1,9 @@
+"""Module for the graphical elements of the ui."""
 import logging
 
-import board
-import neopixel
+# import board
+# import neopixel
 import pygame
-import yaml
 from gpiozero import LED
 
 # BCM pin number of the left LED.
@@ -15,7 +15,8 @@ R_LED_PIN = 6
 leftLED = LED(L_LED_PIN)
 rightLED = LED(R_LED_PIN)
 
-pixels = neopixel.NeoPixel(board.D18, 16)
+# pixels = neopixel.NeoPixel(board.D18, 16)
+
 
 class Themeable():
     """Quasi-interface to indicate that a ui_element is themable.
@@ -26,8 +27,11 @@ class Themeable():
         Dictionary with the key-values describing colors to use in the ui.
 
     """
+
     def __init__(self, theme):
+        """Create a new themable object."""
         self.theme = theme
+
 
 class Gauge(Themeable):
     """Quasi-abstract class that holds common functionality for everything that can be described as a gauge.
@@ -62,7 +66,10 @@ class Gauge(Themeable):
         The maximum value a gauge can take on.
 
     """
-    def __init__(self, surface, canResource, theme, x_coord=0, y_coord=0, label="no name", unit="", min_val=0, max_val=1):
+
+    def __init__(self, surface, canResource, theme, x_coord=0, y_coord=0,
+                 label="no name", unit="", min_val=0, max_val=1):
+        """Create a new instance of Gauge."""
         super().__init__(theme)
         self.surface = surface
         self.x_coord = x_coord
@@ -73,21 +80,18 @@ class Gauge(Themeable):
         self.min = min_val
         self.max = max_val
         self.theme = theme
-        
+
         self.value = min_val
 
     def updateElement(self):
-        """Update the gauge with the current value of the can channel.
-
-        """
+        """Update the gauge with the current value of the can channel."""
         self.value = self.canResource.getValue()
         self.draw()
 
     def draw(self):
-        """Draw the gauge to the screen surface. This will be unique to the implemenation.
-        
-        """
+        """Draw the gauge to the screen surface. This will be unique to the implemenation."""
         pass
+
 
 # Vertical bar gauge.
 class BarGauge(Gauge):
@@ -129,7 +133,7 @@ class BarGauge(Gauge):
 
     # Number of pixels wide the gauge is.
     GAUGE_WIDTH = 40
-    
+
     # Number of pixels high the gauge is.
     GAUGE_HEIGHT = 200
 
@@ -139,19 +143,19 @@ class BarGauge(Gauge):
     # Size of the text in the gauge.
     TEXT_SIZE = 24
 
-    def __init__(self, surface, canResource, theme, x_coord=0, y_coord=0, label="no name", unit="", min_val=0, max_val=1, **kwargs):
-        super().__init__(surface, canResource, theme, x_coord=x_coord, y_coord=y_coord, label=label, unit=unit, min_val=min_val, max_val=max_val)
+    def __init__(self, surface, canResource, theme, x_coord=0, y_coord=0,
+                 label="no name", unit="", min_val=0, max_val=1, **kwargs):
+        """Create a new BarGauge."""
+        super().__init__(surface, canResource, theme, x_coord=x_coord, y_coord=y_coord,
+                         label=label, unit=unit, min_val=min_val, max_val=max_val)
 
     def draw(self):
-        """Draw the graphical elements of the BarGauge
-
-        """
-
+        """Draw the graphical elements of the BarGauge."""
         # Label
         labelFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
         labelText = labelFont.render(self.label, False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(
-            labelText, 
+            labelText,
             (self.x_coord + self.GAUGE_WIDTH / 2 - labelText.get_width() / 2, self.y_coord + self.GAUGE_HEIGHT)
         )
 
@@ -159,7 +163,7 @@ class BarGauge(Gauge):
         valueRange = self.max - self.min
         gaugePercentage = self.value / valueRange
         fillHeight = min(self.GAUGE_HEIGHT, round(gaugePercentage * self.GAUGE_HEIGHT))
-        fillCoords = (self.x_coord, self.y_coord + self.GAUGE_HEIGHT - fillHeight) 
+        fillCoords = (self.x_coord, self.y_coord + self.GAUGE_HEIGHT - fillHeight)
         fillRect = pygame.Rect(fillCoords, (self.GAUGE_WIDTH, fillHeight))
         pygame.draw.rect(self.surface, self.theme['BAR_GAUGE_FILL'], fillRect)
 
@@ -171,9 +175,10 @@ class BarGauge(Gauge):
         readoutFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
         readoutText = readoutFont.render(f'{int(self.value)} {self.unit}', False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(
-            readoutText, 
+            readoutText,
             (self.x_coord + self.GAUGE_WIDTH / 2 - readoutText.get_width() / 2, self.y_coord - readoutText.get_height())
         )
+
 
 class GearDisplay(Gauge):
     """Large gear display in the center of the screen.
@@ -193,19 +198,21 @@ class GearDisplay(Gauge):
         Key words arguments that are optionally passed. None are used for gear display.
 
     """
+
     # Text size of the gear readout.
     GEAR_SIZE = 256
 
     def __init__(self, surface, canResource, theme, **kwargs):
+        """Create a new GearDisplay instance."""
         super().__init__(surface, canResource, theme)
 
     def draw(self):
-        """Draw the graphical elements of the GearDisplay
-
-        """
+        """Draw the graphical elements of the GearDisplay."""
         gearFont = pygame.font.Font('freesansbold.ttf', self.GEAR_SIZE)
         gearText = gearFont.render(str(int(self.value)), False, self.theme['PRIMARY_COLOR'])
-        self.surface.blit(gearText, (self.surface.get_width() / 2 - gearText.get_width() / 2, self.surface.get_height() / 2 - gearText.get_height() / 2))
+        self.surface.blit(gearText, (self.surface.get_width() / 2 - gearText.get_width() / 2,
+                          self.surface.get_height() / 2 - gearText.get_height() / 2))
+
 
 class VoltageBox(Gauge):
     """Voltage box in the upper left corner of the display.
@@ -233,19 +240,19 @@ class VoltageBox(Gauge):
     TEXT_SIZE = 64
 
     def __init__(self, surface, canResource, theme, **kwargs):
+        """Create a new voltage box instance."""
         super().__init__(surface, canResource, theme)
 
     def draw(self):
-        """Draw the graphical elements onto the screen.
-
-        """
-        backgroundRect = pygame.Rect((0,0), (150, 80))
+        """Draw the graphical elements onto the screen."""
+        backgroundRect = pygame.Rect((0, 0), (150, 80))
         pygame.draw.rect(self.surface, self.theme['VOLTAGE_BOX_BACKGROUND'], backgroundRect)
-        backgroundOutline = pygame.Rect((0,0), (150, 80))
+        backgroundOutline = pygame.Rect((0, 0), (150, 80))
         pygame.draw.rect(self.surface, self.theme['PRIMARY_COLOR'], backgroundOutline, self.BORDER_THICKNESS)
         voltageFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
         voltageText = voltageFont.render(str(self.value), False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(voltageText, (10, 5))
+
 
 class RPM_Display(Gauge):
     """RPM readout at the top center of the screen.
@@ -275,31 +282,40 @@ class RPM_Display(Gauge):
     TOTAL_NEOPIX_LEDS = 16
 
     # Array for the color of the shift lights at different levels.
-    NEOPIX_COLOR_ARRAY = [(50, 168, 82),(50, 168, 82),(247, 255, 5),(247, 255, 5),(255, 5, 5),(255, 5, 5),(5, 59, 255),(5, 59, 255)]
+    GREEN = (50, 168, 82)
+    YELLOW = (247, 255, 5)
+    RED = (255, 5, 5)
+    BLUE = (5, 59, 255)
+    NEOPIX_COLOR_ARRAY = [
+        GREEN, GREEN, YELLOW,
+        YELLOW, RED, RED,
+        BLUE, BLUE
+    ]
 
     def __init__(self, surface, canResource, theme, threshold_val=10000, max_val=13000, **kwargs):
+        """Create a new RPM_Display."""
         self.threshold = threshold_val
         super().__init__(surface, canResource, theme, max_val=max_val)
 
     def draw(self):
-        """Draw the graphical elements onto the screen.
-
-        """
+        """Draw the graphical elements onto the screen."""
         self.updateNeoPixels()
         rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
         rpmText = rpmFont.render(f'{int(self.value)} RPM', False, self.theme['PRIMARY_COLOR'])
         self.surface.blit(rpmText, (self.surface.get_width() / 2 - rpmText.get_width() / 2, self.VERTICAL_POS))
-    
+
     def updateNeoPixels(self):
+        """Update the neopixel sticks with the RPM."""
         pct = (self.value - self.threshold) / (self.max - self.threshold)
-        pct = max(pct, 0)
-        pct = min(pct, 1)
-        numLeds = round(pct * self.TOTAL_NEOPIX_LEDS / 2)
-        for i in range(0, numLeds):
-            pixels[i] = self.NEOPIX_COLOR_ARRAY[i]
-        for i in range (self.TOTAL_NEOPIX_LEDS - 1, self.TOTAL_NEOPIX_LEDS - 1 - numLeds, -1):
-            colorIndex = self.TOTAL_NEOPIX_LEDS - i - 1
-            pixels[i] = self.NEOPIX_COLOR_ARRAY[colorIndex]
+        # pct = max(pct, 0)
+        # pct = min(pct, 1)
+        # numLeds = round(pct * self.TOTAL_NEOPIX_LEDS / 2)
+        # for i in range(0, numLeds):
+        #     pixels[i] = self.NEOPIX_COLOR_ARRAY[i]
+        # for i in range (self.TOTAL_NEOPIX_LEDS - 1, self.TOTAL_NEOPIX_LEDS - 1 - numLeds, -1):
+        #     colorIndex = self.TOTAL_NEOPIX_LEDS - i - 1
+        #     pixels[i] = self.NEOPIX_COLOR_ARRAY[colorIndex]
+
 
 class DriverWarning(Themeable):
     """A warning icon that will apprear if a given conditional is encountered.
@@ -345,9 +361,9 @@ class DriverWarning(Themeable):
 
     # Max length of warning text before truncating.
     TEXT_TRUNCATE_LENGTH = 9
-    
 
     def __init__(self, surface, channels, theme, x_coord=0, y_coord=0, conditionals=[], imagePath="", **kwargs):
+        """Create a new driver warning."""
         super().__init__(theme)
         self.surface = surface
         self.channels = channels
@@ -359,9 +375,7 @@ class DriverWarning(Themeable):
         self.addConditions(conditionals)
 
     def updateElement(self):
-        """Check the list of conditionals and draw the icon if needed.
-
-        """
+        """Check the list of conditionals and draw the icon if needed."""
         status = self.checkRules()
         if status == 1:
             leftLED.on()
@@ -375,13 +389,11 @@ class DriverWarning(Themeable):
             rightLED.off()
 
     def draw(self):
-        """Draw the graphical elements to the surface for this icon.
-
-        """
+        """Draw the graphical elements to the surface for this icon."""
         self.surface.blit(self.image, (self.x_coord, self.y_coord))
 
     def addConditions(self, conditionals):
-        """Parses the list of conditionals passed, adding them to an internal list of rules.
+        """Parse the list of conditionals passed, adding them to an internal list of rules.
 
         Parameters
         ----------
@@ -417,17 +429,20 @@ class DriverWarning(Themeable):
                 self.wheelLogger.warning(f"{rule[0].name} {rule[1]} {rule[2]}")
                 # Put the rule's can channel below the warning.
                 rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-                rpmText = rpmFont.render(f"{rule[0].name[:self.TEXT_TRUNCATE_LENGTH]}", False, self.theme['PRIMARY_COLOR'])
+                rpmText = rpmFont.render(f"{rule[0].name[:self.TEXT_TRUNCATE_LENGTH]}", False,
+                                         self.theme['PRIMARY_COLOR'])
                 self.surface.blit(rpmText, (self.x_coord, self.y_coord + self.image.get_height()))
                 rtn = 2
             elif eval(f"{rule[0].getValue()} {rule[1]} {rule[2]}"):
                 self.wheelLogger.warning(f"{rule[0].name} {rule[1]} {rule[2]}")
                 # Put the rule's can channel below the warning.
                 rpmFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-                rpmText = rpmFont.render(f"{rule[0].name[:self.TEXT_TRUNCATE_LENGTH]}", False, self.theme['PRIMARY_COLOR'])
+                rpmText = rpmFont.render(f"{rule[0].name[:self.TEXT_TRUNCATE_LENGTH]}", False,
+                                         self.theme['PRIMARY_COLOR'])
                 self.surface.blit(rpmText, (self.x_coord, self.y_coord + self.image.get_height()))
                 rtn = 1
         return rtn
+
 
 class Background(Themeable):
     """Viper-inspired background animation that activates between a given RPM threshold.
@@ -458,6 +473,7 @@ class Background(Themeable):
     """
 
     def __init__(self, surface, canResource, theme, imagePath="", min_val=0, max_val=1, **kwargs):
+        """Create a new Background object."""
         super().__init__(theme)
         self.surface = surface
         self.canResource = canResource
@@ -468,17 +484,13 @@ class Background(Themeable):
         self.image = pygame.image.load(self.imagePath)
 
     def updateElement(self):
-        """Check to see if the background is white, if so draw the background animation.
-
-        """
+        """Check to see if the background is white, if so draw the background animation."""
         if self.theme['BACKGROUND_COLOR'] == pygame.Color("white"):
             self.value = self.canResource.getValue()
             self.draw()
 
     def draw(self):
-        """Calculate the proper alpha (transparency) and draw the background.
-
-        """
+        """Calculate the proper alpha (transparency) and draw the background."""
         alpha = (self.value - self.min_val)/(self.max_val - self.min_val) * 255
         alpha = max(alpha, 0)
         alpha = min(alpha, 255)
