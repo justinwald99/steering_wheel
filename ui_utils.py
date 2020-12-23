@@ -18,83 +18,145 @@ rightLED = LED(R_LED_PIN)
 # pixels = neopixel.NeoPixel(board.D18, 16)
 
 
-class Themeable():
-    """Quasi-interface to indicate that a ui_element is themable.
+class element_factory():
+    """Factory to produce and track ui elements on the steering wheel."""
 
-    Parameters
-    ----------
-    theme : dict
-        Dictionary with the key-values describing colors to use in the ui.
+    def __init__(self, surface, theme, config):
+        """Create the element factory.
 
-    """
+        Parameters
+        ----------
+        surface : pygame.surface
+            The surface that all elements will be written to.
 
-    def __init__(self, theme):
-        """Create a new themable object."""
-        self.theme = theme
+        theme : dict
+            Theme used to color elements. Should be a dict with
+            key-value pairs of labels and colors.
 
-
-class Gauge(Themeable):
-    """Quasi-abstract class that holds common functionality for everything that can be described as a gauge.
-
-    Parameters
-    ----------
-    surface : pygame.surface
-        The screen surface that will ultimately be written to.
-
-    canResource : can_read.CanResource
-        A single "channel" within a compound can message that data is pulled from.
-
-    theme : dict
-        Dictionary with the key-values describing colors to use in the ui.
-
-    x_coord : int
-        The x coord of the top left of the ui_element as referenced from the top left of the screen.
-
-    y_coord : int
-        The y coord of the top left of the ui_element as referenced from the top left of the screen.
-
-    label : string
-        The label for a gauge if applicable.
-
-    unit : string
-        Unit of the gauge if applicable.
-
-    min_value : int
-        The minimum value a gauge can take on.
-
-    max_value int
-        The maximum value a gauge can take on.
-
-    """
-
-    def __init__(self, surface, canResource, theme, x_coord=0, y_coord=0,
-                 label="no name", unit="", min_val=0, max_val=1):
-        """Create a new instance of Gauge."""
-        super().__init__(theme)
+        """
         self.surface = surface
-        self.x_coord = x_coord
-        self.y_coord = y_coord
-        self.label = label
-        self.canResource = canResource
-        self.unit = unit
-        self.min = min_val
-        self.max = max_val
+        self.theme = theme
+        self.config = config
+        self.elements = list()
+
+        # Create the list of element constructors.
+        self.constructors = {
+            "bar_gauge": bar_gauge,
+            "GearDisplay": GearDisplay,
+            "VoltageBox": VoltageBox,
+            "RPM_Display": RPM_Display,
+            "DriverWarning": DriverWarning,
+            "Background": Background
+        }
+
+    def add_element(self, parameters):
+        """Add an element to the list of elements on the screen.
+
+        Parameters
+        ----------
+        parameters : dict
+            Dict of key-value pairs that specify the parameters for the gauge. The can channel(s)
+            should be specified in a list.
+            Ex: type: Background
+                channel_name: [engine_rpm]
+                imagePath: assets/wmf_wolf.png
+                min_val: 11000
+                max_val: 12500
+
+        Returns
+        -------
+        Integer ID for the new element created.
+
+        """
+        new_id = len(self.elements)
+        new_element = self.constructors[parameters["type"]](self, parameters)
+        self.elements.append(new_element)
+
+        return new_id
+
+    def delete_element(self, id):
+        """Delete an element by its ID.
+
+        Parameters
+        ----------
+        id : int
+            ID of the element to delete from the list of elements.
+
+        """
+        self.elements.pop(id)
+
+    def update_element(self, id):
+        """Update a single element, by id, with new info from the DB.
+
+        Parameters
+        ----------
+        id : int
+            Int id of the element to update.
+
+        """
+        self.elements[id].update()
+
+    def update_all(self):
+        """Update all of the elements from the list with info from the DB."""
+        for element in self.elements:
+            element.update()
+
+    def set_theme(self, theme):
+        """Set the theme that all of the elements will use on next redraw.
+
+        Parameters
+        ----------
+        theme : dict
+            Theme used to color elements. Should be a dict with
+            key-value pairs of labels and colors.
+
+        """
         self.theme = theme
 
-        self.value = min_val
+    def get_theme(self):
+        """Return the current theme dict.
 
-    def updateElement(self):
-        """Update the gauge with the current value of the can channel."""
-        self.value = self.canResource.getValue()
-        self.draw()
+        This will be used by elements to get any applicable colors.
 
-    def draw(self):
-        """Draw the gauge to the screen surface. This will be unique to the implemenation."""
-        pass
+        """
+        return self.theme
+
+    def get_surface(self):
+        """Return the surface for the factory."""
+        return self.surface
+
+
+class Gauge():
+    """Class that holds common functionality for everything that can be described as a gauge.
+
+    Parameters
+    ----------
+    factory : element_factory
+        Parent factory this element will be a part of that will provide surface and theme.
+
+    parameters : dict
+        Dict of parameters used to construct the gauge. Must contain at least the following:
+            channel_name : String
+                A single "channel" within a compound can message that data is pulled from.
+
+    """
+
+    def __init__(self, factory, parameters):
+        """Create a new instance of Gauge."""
+        self.factory = factory
+        self.parameters = parameters
+
+    def update():
+        """Update the gauge with new info from the DB and redraw on screen.
+
+        This should be implemented by each gauge as it will be unique to each element.
+        """
+        print("Method not implemented.")
+        exit(1)
 
 
 # Vertical bar gauge.
-class BarGauge(Gauge):
+class bar_gauge(Gauge):
     """Bar style gauge for displaying critical information.
 
     Parameters
@@ -127,56 +189,53 @@ class BarGauge(Gauge):
         The maximum value a gauge can take on.
 
     kwargs : dict
-        A dictionary of any parameters not explicitly used by the BarGauge.
+        A dictionary of any parameters not explicitly used by the bar_gauge.
 
     """
 
-    # Number of pixels wide the gauge is.
-    GAUGE_WIDTH = 40
+    def __init__(self, factory, parameters):
+        """Create a new bar_gauge."""
+        super().__init__(factory, parameters)
+        self.value = parameters["min_val"]
 
-    # Number of pixels high the gauge is.
-    GAUGE_HEIGHT = 200
+    def update(self):
+        # **************
+        # TODO
+        # Convert can_read to write to a db and update gauge by that.
 
-    # Number of pixels in the gauge outline.
-    GAUGE_OUTLINE_WIDTH = 5
+        """Draw the graphical elements of the bar_gauge."""
+        # Shorten vars
+        p = self.parameters
+        c = self.factory.config["element_config"]["bar_gauge"]
 
-    # Size of the text in the gauge.
-    TEXT_SIZE = 24
-
-    def __init__(self, surface, canResource, theme, x_coord=0, y_coord=0,
-                 label="no name", unit="", min_val=0, max_val=1, **kwargs):
-        """Create a new BarGauge."""
-        super().__init__(surface, canResource, theme, x_coord=x_coord, y_coord=y_coord,
-                         label=label, unit=unit, min_val=min_val, max_val=max_val)
-
-    def draw(self):
-        """Draw the graphical elements of the BarGauge."""
         # Label
-        labelFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-        labelText = labelFont.render(self.label, False, self.theme['PRIMARY_COLOR'])
-        self.surface.blit(
+        labelFont = pygame.font.Font('freesansbold.ttf', c["text_size"])
+        labelText = labelFont.render(p["label"], False, self.factory.get_theme()['PRIMARY_COLOR'])
+        self.factory.get_surface().blit(
             labelText,
-            (self.x_coord + self.GAUGE_WIDTH / 2 - labelText.get_width() / 2, self.y_coord + self.GAUGE_HEIGHT)
+            (p["x_coord"] + c["bar_width"] / 2 - labelText.get_width() / 2, p["y_coord"] + c["bar_height"])
         )
 
         # Gauge fill
-        valueRange = self.max - self.min
+        valueRange = p["max_val"] - p["min_val"]
         gaugePercentage = self.value / valueRange
-        fillHeight = min(self.GAUGE_HEIGHT, round(gaugePercentage * self.GAUGE_HEIGHT))
-        fillCoords = (self.x_coord, self.y_coord + self.GAUGE_HEIGHT - fillHeight)
-        fillRect = pygame.Rect(fillCoords, (self.GAUGE_WIDTH, fillHeight))
-        pygame.draw.rect(self.surface, self.theme['BAR_GAUGE_FILL'], fillRect)
+        fillHeight = min(c["bar_height"], round(gaugePercentage * c["bar_height"]))
+        fillCoords = (p["x_coord"], p["y_coord"] + c["bar_height"] - fillHeight)
+        fillRect = pygame.Rect(fillCoords, (c["bar_width"], fillHeight))
+        pygame.draw.rect(self.factory.get_surface(), self.factory.get_theme()['BAR_GAUGE_FILL'], fillRect)
 
         # Outline
-        outlineRect = pygame.Rect((self.x_coord, self.y_coord), (self.GAUGE_WIDTH, self.GAUGE_HEIGHT))
-        pygame.draw.rect(self.surface, self.theme['PRIMARY_COLOR'], outlineRect, self.GAUGE_OUTLINE_WIDTH)
+        outlineRect = pygame.Rect((p["x_coord"], p["y_coord"]), (c["bar_width"], c["bar_height"]))
+        pygame.draw.rect(self.factory.get_surface(), self.factory.get_theme()['PRIMARY_COLOR'],
+                         outlineRect, c["outline_width"])
 
         # Exact readout
-        readoutFont = pygame.font.Font('freesansbold.ttf', self.TEXT_SIZE)
-        readoutText = readoutFont.render(f'{int(self.value)} {self.unit}', False, self.theme['PRIMARY_COLOR'])
-        self.surface.blit(
+        readoutFont = pygame.font.Font('freesansbold.ttf', c["text_size"])
+        readoutText = readoutFont.render(f'{int(self.value)} {p["unit"]}', False,
+                                         self.factory.get_theme()['PRIMARY_COLOR'])
+        self.factory.get_surface().blit(
             readoutText,
-            (self.x_coord + self.GAUGE_WIDTH / 2 - readoutText.get_width() / 2, self.y_coord - readoutText.get_height())
+            (p["x_coord"] + c["bar_width"] / 2 - readoutText.get_width() / 2, p["y_coord"] - readoutText.get_height())
         )
 
 
@@ -317,7 +376,7 @@ class RPM_Display(Gauge):
         #     pixels[i] = self.NEOPIX_COLOR_ARRAY[colorIndex]
 
 
-class DriverWarning(Themeable):
+class DriverWarning():
     """A warning icon that will apprear if a given conditional is encountered.
 
     Parameters
@@ -444,7 +503,7 @@ class DriverWarning(Themeable):
         return rtn
 
 
-class Background(Themeable):
+class Background():
     """Viper-inspired background animation that activates between a given RPM threshold.
 
     Parameters

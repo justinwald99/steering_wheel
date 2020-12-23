@@ -16,7 +16,7 @@ from gpiozero import Device, Button, PWMLED
 # Set the default pin factory to a mock factory
 Device.pin_factory = MockFactory(pin_class=MockPWMPin)
 
-from ui_utils import BarGauge, GearDisplay, RPM_Display, VoltageBox, DriverWarning, Background
+from ui_utils import bar_gauge, GearDisplay, RPM_Display, VoltageBox, DriverWarning, Background
 from steering_wheel import SteeringWheel
 
 # BCM pin number of the bottom right button.
@@ -30,12 +30,6 @@ CONFIG_PATH = "config.yaml"
 
 # Number of logs kept at a time.
 KEPT_LOGS = 25
-
-# Default theme path.
-DEFAULT_THEME_PATH = "themes/default_theme.yaml"
-
-# Path to the night theme file.
-NIGHT_THEME_PATH = "themes/night_theme.yaml"
 
 def setup():
     """Run on steering wheel startup.
@@ -63,8 +57,8 @@ def setup():
 
     # Create the right button below the screen.
     button = Button(BR_BUTTON_PIN, pull_up=False, pin_factory=MockFactory())
-    button.when_held = wheel.toggleNightMode
-    button.when_activated = wheel.changeBrightness
+    button.when_held = wheel.toggle_night_mode
+    button.when_activated = wheel.change_brightness
 
     # Get a reference to mock pin 16 (used by the button)
     btn_pin = button.pin_factory.pin(BR_BUTTON_PIN)

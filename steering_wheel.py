@@ -11,29 +11,16 @@ import yaml
 from gpiozero import PWMLED, Button
 
 from can_read import CanResource, CanResourceChannel
-from ui_utils import (Background, BarGauge, DriverWarning, GearDisplay,
-                      RPM_Display, VoltageBox)
-
-# BCM pin number of the bottom right button.
-BR_BUTTON_PIN = 16
-
-# BCM pin for PWM brightness control of the screen.
-BRIGHTNESS_PIN = 14
-
-# Refresh rate in Hz.
-REFRESH_RATE = 25
+from ui_utils import element_factory
 
 # Path to the config file.
 CONFIG_PATH = "config.yaml"
 
-# Number of logs kept at a time.
+# Path to the config for aspects of the ui and can functionality.
+WHEEL_CONFIG_PATH = "wheel_config.yaml"
+
+# Number of log files with debug info kept at a time.
 KEPT_LOGS = 25
-
-# Default theme path.
-DEFAULT_THEME_PATH = "themes/default_theme.yaml"
-
-# Path to the night theme file.
-NIGHT_THEME_PATH = "themes/night_theme.yaml"
 
 # Check if there are more than KEPT_LOGS number of log files, delete oldest if neccesary.
 while (len(os.listdir("logs")) > KEPT_LOGS - 1):
@@ -48,6 +35,14 @@ logging.basicConfig(
 wheelLogger = logging.getLogger('wheelLogger')
 
 wheelLogger.debug("Starting log...")
+
+# Open the config file.
+with open(CONFIG_PATH, 'r') as configFile:
+    try:
+        config = yaml.safe_load(configFile)
+    except yaml.YAMLError as exc:
+        wheelLogger.critical(f"Could not open config file: {exc}")
+        exit(0)
 
 
 class SteeringWheel(can.notifier.Notifier):
@@ -67,99 +62,53 @@ class SteeringWheel(can.notifier.Notifier):
         """Create a new instance of the steering wheel."""
         # Initialize the display.
         pygame.init()
-        self.surface = pygame.display.set_mode([720, 480])
-        self.elements = list()
+        self.surface = pygame.display.set_mode([config["options"]["h_res"], config["options"]["v_res"]])
         wheelLogger.debug("Display initialized.")
         self.isNightMode = False
-        self.brightnessControl = PWMLED(BRIGHTNESS_PIN, frequency=1000)
-        self.changeBrightness()
+        self.brightnessControl = PWMLED(config["pi_pins"]["brightness_pin"], frequency=1000)
+        self.change_brightness()
+
         # Initialize the Notifier componoent.
         super().__init__(bus, list((CanResource("Custom Data Set", list()),)))
 
-        # Create the list of ui_util constructors.
-        self.constructors = {
-            "BarGauge": BarGauge,
-            "GearDisplay": GearDisplay,
-            "VoltageBox": VoltageBox,
-            "RPM_Display": RPM_Display,
-            "DriverWarning": DriverWarning,
-            "Background": Background
-        }
-
-        # Create the theme singleton to provide colors to ui_elements.
-        self.theme = dict()
-        self.changeTheme(DEFAULT_THEME_PATH)
-
-        # List of elements that need access to multiple channels.
-        self.multiChannelElements = [
-            "DriverWarning"
-        ]
-
         # Read the config.
-        self.readConfig()
+        self.read_config()
 
-    def readConfig(self):
-        """Read the contents of the config file and create the indicated items."""
-        # Open the config file.
-        with open(CONFIG_PATH, 'r') as configFile:
+    def read_config(self):
+        """Read the config and create elements."""
+        # Open the wheel config file.
+        with open(WHEEL_CONFIG_PATH, 'r') as configFile:
             try:
-                config = yaml.safe_load(configFile)
+                wheel_config = yaml.safe_load(configFile)
             except yaml.YAMLError as exc:
-                print(exc)
+                wheelLogger.critical(f"Could not open config file: {exc}")
+                exit(0)
+
+        # Initialize the ui element factory.
+        self.factory = element_factory(self.surface, self.read_theme(config["paths"]["default_theme_path"]),
+                                       wheel_config)
 
         # Add CAN channels to the notifier.
-        for channel in config["can_channels"]:
+        for channel in wheel_config["can_channels"]:
             self.listeners[0].channels.append(CanResourceChannel(
                 channel['name'], channel['scaling_factor']))
             wheelLogger.debug(f"Channel loaded: {channel['name']}.")
 
-        # Add each element in config.
-        for element in config['ui_elements']:
-
-            # Multi-channel elements.
-            if element['type'] in self.constructors and element['type'] in self.multiChannelElements:
-                # Find all the channels.
-                channels = {}
-                for channel in self.listeners[0].channels:
-                    if channel.name in element['channel_list']:
-                        channels.update({channel.name: channel})
-                self.elements.append(self.constructors[element['type']](
-                    self.surface, channels, self.theme, **element))
-
-            # Single channel elements.
-            elif element['type'] in self.constructors:
-                # Retrieve the correct can channel for the element.
-                canChannel = None
-                for channel in self.listeners[0].channels:
-                    if channel.name == element['channel_name']:
-                        canChannel = channel
-                        break
-                # Ensure a channel was found.
-                if not canChannel:
-                    wheelLogger.warning(
-                        f"Invalid can channel: {element['channel_name']}")
-                else:
-                    # Call the correct constructor.
-                    self.elements.append(self.constructors[element['type']](
-                        self.surface, canChannel, self.theme, **element))
-                    wheelLogger.debug(f"UI element loaded: {element['type']}.")
-
-            # Invalid element.
-            else:
-                wheelLogger.warning(f"Invalid gauge type: {element['type']}")
+        # Add each element in wheel_config.
+        for element in wheel_config['ui_elements']:
+            self.factory.add_element(element)
 
     def update(self):
         """Redraw the elements with updated values and blit the screen."""
         # Write black to the screen before every blit.
-        self.surface.fill(self.theme['BACKGROUND_COLOR'])
+        self.surface.fill(self.factory.get_theme()['BACKGROUND_COLOR'])
 
-        for element in self.elements:
-            element.updateElement()
+        self.factory.update_all()
 
         # "Flip" the display (update the display with the newly created surface.
         pygame.display.flip()
 
-    def changeTheme(self, fileName):
+    def read_theme(self, fileName):
         """Load in a new theme from a fileName and updates the reference used by all ui_elements.
 
         Parameters
@@ -169,21 +118,22 @@ class SteeringWheel(can.notifier.Notifier):
 
         """
         with open(fileName, "r") as theme:
-            loadedTheme = yaml.safe_load(theme)
+            loaded_theme = yaml.safe_load(theme)
         # Convert the hex colors in pygame.Color objects.
-        for name, color in loadedTheme.items():
-            self.theme.update({name: pygame.Color(color)})
+        for name, color in loaded_theme.items():
+            loaded_theme.update({name: pygame.Color(color)})
+        return loaded_theme
 
-    def toggleNightMode(self):
+    def toggle_night_mode(self):
         """Toggle nightmode on the screen."""
         if self.isNightMode:
             self.isNightMode = False
-            self.changeTheme(DEFAULT_THEME_PATH)
+            self.factory.set_theme(config["paths"]["default_theme_path"])
         else:
             self.isNightMode = True
-            self.changeTheme(NIGHT_THEME_PATH)
+            self.factory.set_theme(config["paths"]["night_theme_path"])
 
-    def changeBrightness(self):
+    def change_brightness(self):
         """Change the brightness of the screen in 25% incremenets."""
         self.brightnessControl.value = (
             self.brightnessControl.value - .25) % 1.25
@@ -191,27 +141,32 @@ class SteeringWheel(can.notifier.Notifier):
 
 def setup():
     """Run on steering wheel startup."""
+
     # Create the CAN bus. SocketCan is the kernel support for CAN,
     # can0 is the network created with SocketCan, and the bitrate
     # of the network is 1000000 bits/s.
-
-    # Start the can bus.
-    canBus = can.interface.Bus(
-        bustype='socketcan', channel='can0', bitrate=1000000)
+    canBus = can.interface.Bus(bustype='socketcan', channel='can0', bitrate=1000000)
 
     # Add a filter to only listen on CAN ID 10, the custom data set ID from motec.
-    canBus.set_filters([{"can_id": 10, "can_mask": 0xF, "extended": False}])
+    canBus.set_filters([{"can_id": config["can_info"]["can_channel_id"], "can_mask": 0xF, "extended": False}])
 
     # Create an instance of the steering wheel listener.
+    global wheel
     wheel = SteeringWheel(canBus)
 
     # Create the right button below the screen.
-    button = Button(BR_BUTTON_PIN, pull_up=False)
-    button.when_held = wheel.toggleNightMode
-    button.when_activated = wheel.changeBrightness
+    global button
+    button = Button(config["pi_pins"]["br_button_pin"], pull_up=False)
+    button.when_held = wheel.toggle_night_mode
+    button.when_activated = wheel.change_brightness
 
+    # Start the loop.
+    screen_loop()
+
+
+def screen_loop():
     lastUpdateTime = time.time()
-    while 1:
+    while True:
         for event in pygame.event.get():
             # Exit button.
             if event.type == pygame.QUIT:
@@ -221,11 +176,8 @@ def setup():
                 sys.exit()
 
         # Update screen at given refresh rate.
-        if (time.time() - lastUpdateTime > 1 / REFRESH_RATE):
-            # preUpdate = time.time()
+        if (time.time() - lastUpdateTime > 1 / config["options"]["refresh_rate"]):
             wheel.update()
-            # print(f"cpu_fps: {int(1 / (time.time() - preUpdate))}")
-            # print(f"real_fps: {int(1 / (time.time() - lastUpdateTime))}")
             lastUpdateTime = time.time()
 
 
