@@ -52,41 +52,55 @@ ui_elements:
     unit: PSI
     min_val: 0
     max_val: 500
-  # - type: GearDisplay
-  #   channel_name: gear_position
-  # - type: VoltageBox
-  #   channel_name: battery_voltage
-  # - type: RPM_Display
-  #   threshold_val: 10000
-  #   max_val: 12500
-  #   channel_name: engine_rpm
-  # - type: DriverWarning
-  #   channel_list: [battery_voltage]
-  #   x_coord: 15
-  #   y_coord: 160
-  #   conditionals: ["battery_voltage < 12"]
-  #   imagePath: assets/battery_warning.png
-  # - type: DriverWarning
-  #   channel_list: [oil_temperature]
-  #   x_coord: 15
-  #   y_coord: 240
-  #   conditionals: ["oil_temperature > 100"]
-  #   imagePath: assets/oil_temp_warning.png
-  # - type: DriverWarning
-  #   channel_list: [water_temperature]
-  #   x_coord: 641
-  #   y_coord: 160
-  #   conditionals: ["water_temperature > 200"]
-  #   imagePath: assets/water_temp_warning.png
-  # - type: DriverWarning
-  #   channel_list: [oil_pressure, engine_rpm]
-  #   x_coord: 641
-  #   y_coord: 240
-  #   conditionals: ["oil_pressure > 200", "engine_rpm > 11000 critical"]
-  #   imagePath: assets/generic_warning.png
+  - type: gear_display
+    channel_name: gear_position
+    min_val: 1
+  - type: voltage_box
+    channel_name: battery_voltage
+    min_val: 0
+  - type: rpm_display
+    threshold_val: 10000
+    min_val: 0
+    max_val: 12500
+    channel_name: engine_rpm
+  - type: driver_warning
+    channel_list: [battery_voltage]
+    x_coord: 15
+    y_coord: 160
+    conditionals: ["battery_voltage < 12"]
+    image_path: assets/battery_warning.png
+  - type: driver_warning
+    channel_list: [oil_temperature]
+    x_coord: 15
+    y_coord: 240
+    conditionals: ["oil_temperature > 100"]
+    image_path: assets/oil_temp_warning.png
+  - type: driver_warning
+    channel_list: [water_temperature]
+    x_coord: 641
+    y_coord: 160
+    conditionals: ["water_temperature > 200"]
+    image_path: assets/water_temp_warning.png
+  - type: driver_warning
+    channel_list: [oil_pressure, engine_rpm]
+    x_coord: 641
+    y_coord: 240
+    conditionals: ["oil_pressure > 200", "engine_rpm > 11000 critical"]
+    image_path: assets/generic_warning.png
 element_config:
   bar_gauge:
     bar_width: 40
     bar_height: 200
     outline_width: 5
     text_size: 24
+  gear_display:
+    gear_size: 256
+  voltage_box:
+    border_thickness: 5
+    text_size: 64
+  rpm_display:
+    text_size: 64
+    vertical_pos: 10
+  driver_warning:
+    text_size: 14
+    text_truncate_length: 9

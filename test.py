@@ -1,22 +1,16 @@
-import datetime
-import logging
-import os
 import sys
 import time
 import random
 
 import can
 import pygame
-import yaml
 
-from can_read import CanResource, CanResourceChannel
 from gpiozero.pins.mock import MockFactory, MockPWMPin
 from gpiozero import Device, Button, PWMLED
 
 # Set the default pin factory to a mock factory
 Device.pin_factory = MockFactory(pin_class=MockPWMPin)
 
-from ui_utils import bar_gauge, GearDisplay, RPM_Display, VoltageBox, DriverWarning, Background
 from steering_wheel import SteeringWheel
 
 # BCM pin number of the bottom right button.
@@ -48,7 +42,7 @@ def setup():
     # Add a filter to only listen on CAN ID 10, the custom data set ID from motec.
     # canBus.set_filters([{"can_id": 10, "can_mask": 0xF, "extended": False}])
 
-    
+
     # # Create the notifier object that will listen to the CAN bus and
     # # notify any Listeners registered to it if a message is recieved.
     # canNotifier = can.notifier.Notifier(canBus, resources)
@@ -69,7 +63,7 @@ def setup():
     testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x02\x00\x09\xC4')))
 
     rpm = 8000
-    inc = .15
+    inc = 15
     lastUpdateTime = time.time()
     while 1:
         for event in pygame.event.get():
@@ -86,15 +80,17 @@ def setup():
 
         # Update screen at given refresh rate.
         if (time.time() - lastUpdateTime > 1 / REFRESH_RATE):
-            # preUpdate = time.time()
             wheel.update()
-            # print(f"cpu_fps: {int(1 / (time.time() - preUpdate))}")
-            # print(f"real_fps: {int(1 / (time.time() - lastUpdateTime))}")
             lastUpdateTime = time.time()
-        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([0,0,1,int(random.random()*255),1,int(random.random()*255),1,int(random.random()*255)]))))
+        testBus.send(can.Message(arbitration_id=10, data=bytearray(
+            list([0, 0, 1, int(random.random()*255), 1, int(random.random()*255), 1, int(random.random()*255)])))
+        )
         rpm = rpm + inc
-        if rpm > 12500 or rpm < 8000: inc = inc * -1
-        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([2,0,int(rpm / 256 % 256), int(rpm % 256)]))))
+        if rpm > 12500 or rpm < 8000:
+            inc = inc * -1
+        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([2, 0, int(rpm / 256 % 256), int(rpm % 256)]))))
+        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([1, 0, 0, 0, 0, int(random.choice(range(1, 7)))]))))
+
 
 if __name__ == '__main__':
     setup()

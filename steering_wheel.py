@@ -10,7 +10,7 @@ import pygame
 import yaml
 from gpiozero import PWMLED, Button
 
-from can_read import CanResource, CanResourceChannel
+from can_read import can_channel
 from ui_utils import element_factory
 
 # Path to the config file.
@@ -31,8 +31,9 @@ while (len(os.listdir("logs")) > KEPT_LOGS - 1):
     os.remove(f"logs/{fileList[sortedFiles[0]]}")
 # Create a new logfile with timestamp.
 logging.basicConfig(
-    filename=f"logs/steering_wheel_log_{datetime.datetime.now().strftime('%I.%M.%S%p_%a-%b-%d-%Y')}.txt", level="DEBUG")
-wheelLogger = logging.getLogger('wheelLogger')
+    filename=f"logs/steering_wheel_log_{datetime.datetime.now().strftime('%a-%b-%d-%Y--%H-%M-%S%p')}.txt",
+    level="DEBUG")
+wheelLogger = logging.getLogger('steering_wheel')
 
 wheelLogger.debug("Starting log...")
 
@@ -40,6 +41,7 @@ wheelLogger.debug("Starting log...")
 with open(CONFIG_PATH, 'r') as configFile:
     try:
         config = yaml.safe_load(configFile)
+        wheelLogger.debug("Config loaded...")
     except yaml.YAMLError as exc:
         wheelLogger.critical(f"Could not open config file: {exc}")
         exit(0)
@@ -63,13 +65,13 @@ class SteeringWheel(can.notifier.Notifier):
         # Initialize the display.
         pygame.init()
         self.surface = pygame.display.set_mode([config["options"]["h_res"], config["options"]["v_res"]])
-        wheelLogger.debug("Display initialized.")
+        wheelLogger.debug(f"Display initialized with size: {pygame.display.get_window_size()}")
         self.isNightMode = False
         self.brightnessControl = PWMLED(config["pi_pins"]["brightness_pin"], frequency=1000)
         self.change_brightness()
 
         # Initialize the Notifier componoent.
-        super().__init__(bus, list((CanResource("Custom Data Set", list()),)))
+        super().__init__(bus, [can_channel("Custom Data Set")])
 
         # Read the config.
         self.read_config()
@@ -80,6 +82,7 @@ class SteeringWheel(can.notifier.Notifier):
         with open(WHEEL_CONFIG_PATH, 'r') as configFile:
             try:
                 wheel_config = yaml.safe_load(configFile)
+                wheelLogger.debug("UI config loaded...")
             except yaml.YAMLError as exc:
                 wheelLogger.critical(f"Could not open config file: {exc}")
                 exit(0)
@@ -90,8 +93,7 @@ class SteeringWheel(can.notifier.Notifier):
 
         # Add CAN channels to the notifier.
         for channel in wheel_config["can_channels"]:
-            self.listeners[0].channels.append(CanResourceChannel(
-                channel['name'], channel['scaling_factor']))
+            self.listeners[0].add_compound_channel(channel['name'], channel['scaling_factor'])
             wheelLogger.debug(f"Channel loaded: {channel['name']}.")
 
         # Add each element in wheel_config.
@@ -105,7 +107,7 @@ class SteeringWheel(can.notifier.Notifier):
 
         self.factory.update_all()
 
-        # "Flip" the display (update the display with the newly created surface.
+        # "Flip" the display (update the display with the newly created surface).
         pygame.display.flip()
 
     def read_theme(self, fileName):
@@ -141,7 +143,6 @@ class SteeringWheel(can.notifier.Notifier):
 
 def setup():
     """Run on steering wheel startup."""
-
     # Create the CAN bus. SocketCan is the kernel support for CAN,
     # can0 is the network created with SocketCan, and the bitrate
     # of the network is 1000000 bits/s.
@@ -165,7 +166,8 @@ def setup():
 
 
 def screen_loop():
-    lastUpdateTime = time.time()
+    """Loop to update the screen."""
+    last_update_time = time.time()
     while True:
         for event in pygame.event.get():
             # Exit button.
@@ -176,9 +178,10 @@ def screen_loop():
                 sys.exit()
 
         # Update screen at given refresh rate.
-        if (time.time() - lastUpdateTime > 1 / config["options"]["refresh_rate"]):
+        if (time.time() - last_update_time > 1 / config["options"]["refresh_rate"]):
             wheel.update()
-            lastUpdateTime = time.time()
+            wheelLogger.debug(f"frametime: {time.time() - last_update_time}")
+            last_update_time = time.time()
 
 
 if __name__ == '__main__':

@@ -1,35 +1,36 @@
 """Handles the CAN-bus functionality of the steering wheel."""
+import sqlite3
 
 from can.listener import Listener
 
 
-class CanResource(Listener):
-    """ID-level CAN object.
+class can_channel(Listener):
+    """CAN ID-level CAN object.
 
-    CanResource is a subclass of listener that updates values of
-    individual can channels that were sent via compount meesaging
-    via the on_message_recieved method. Being a subclass
-    of listener, it should be passed to a Notifier so that CanResource
+    can_channel is a subclass of listener that updates values of
+    compound can channels that were sent via the on_message_recieved method.
+    Being a subclass of listener, it should be passed to a Notifier so that can_channel
     is called when a message is recieved by the Notifier.
 
     Parameters
     ----------
     name : string
-        Name of the CAN resource. One name should be
-        assigned per CAN ID.
-
-    channels : list
-        List of CAN channels associated with this CanResource.
-        CAN Resources are compound messages that contain multiple
-        can chhanels sent over a single CAN ID and indexed by the
-        first two bytes of each CAN message.
+        Name of this CAN id.
 
     """
 
-    def __init__(self, name, channels):
-        """Construct a new CanResource."""
+    def __init__(self, name):
+        """Construct a new can_channel."""
         self.name = name
-        self.channels = channels
+        self.sub_channels = list()
+        conn = sqlite3.connect('messages.db')
+        c = conn.cursor()
+        c.execute("""DROP TABLE IF EXISTS channel_values""")
+        c.execute('''CREATE TABLE channel_values
+             (idx int PRIMARY KEY, channel_name text, value float)
+        ''')
+        c.close()
+        conn.commit()
         super().__init__()
 
     def on_message_received(self, msg):
@@ -42,71 +43,66 @@ class CanResource(Listener):
         ----------
         msg : can.Message
             Raw message object recieved by the CAN bus.
-
-        """
-        tripletIndex = int.from_bytes([msg.data[0], msg.data[1]], byteorder='little', signed=False)
-        self.updateValues(tripletIndex, msg.data)
-
-    def updateValues(self, tripletIndex, msgData):
-        """Update the values of CanResourceChannels.
-
-        UpdateValues updates the corresponding channels with information
-        from the message passed to it.
-
-        Parameters
-        ----------
-        tripletIndex : int
-            Index indicating which channel triplet the data is for.
-
-        msgData : list
-            msgData will be in the form:
+            msg.data will be in the form:
                 Index: [0] [1]    [2] [3]     [4] [5]     [6] [7]
                 Data: [index 0] [channel 0] [channel 1] [channel 2]
 
         """
-        # Remove index bytes
-        msgData.pop(0)
-        msgData.pop(0)
-        channelsInMessage = len(msgData) // 2
-        for index in range(0, channelsInMessage):
-            channelIndex = tripletIndex * 3 + index
-            channel = self.channels[channelIndex]
-            dataIndex = index * 2
-            dataBytes = [msgData[dataIndex], msgData[dataIndex + 1]]
-            channel.updateValue(dataBytes)
+        # Parse index from message
+        triplet_index = int.from_bytes(msg.data[0:2], byteorder='little', signed=False)
+
+        # Get number of compound channels in message
+        num_compound_channels = (msg.dlc - 2) // 2
+
+        for channel_offset in range(0, num_compound_channels):
+            # Index into can message data bytes
+            data_offset = channel_offset * 2 + 2
+            # Index into compound channel list
+            channel_index = triplet_index * 3 + channel_offset
+            # Subchannel object
+            sub_channel = self.sub_channels[channel_index]
+
+            value = int.from_bytes(msg.data[data_offset: data_offset + 2], byteorder="big") * sub_channel.scaling_factor
+
+            conn = sqlite3.connect('messages.db')
+            c = conn.cursor()
+            c.execute(
+                'INSERT OR REPLACE INTO channel_values (idx, channel_name, value) '
+                f'VALUES ({channel_index}, "{sub_channel.name}", {value})'
+            )
+            conn.commit()
+
+    def add_compound_channel(self, name, scaling_factor):
+        """Associate a new compound channel to this resource.
+
+        name : string
+            Name of the compound channel.
+
+        scaling_factor : float
+            Factor by which all raw values will be multiplied on this channel.
+
+        """
+        new_channel = compound_can_channel(name, scaling_factor)
+        self.sub_channels.append(new_channel)
 
 
-class CanResourceChannel():
+class compound_can_channel():
     """Single channel sent via compound messaging.
 
     Parameters
     ----------
+    index : int
+        Index of this channel in the compound messaging scheme.
+
     name : string
         Name of the channel Ex. Oil Temperature.
 
-    scalingFactor : float
+    scaling_factor : float
         Scaling factor associated with the channel. Ex. .01
 
     """
 
-    def __init__(self, name, scalingFactor):
-        """Create a new CanResourceChannel."""
+    def __init__(self, name, scaling_factor):
+        """Create a new compound_can_channel."""
         self.name = name
-        self.value = 0
-        self.scalingFactor = scalingFactor
-
-    def updateValue(self, dataBytes):
-        """Update the value field of the channel.
-
-        Parameters
-        ----------
-        dataBytes : list
-            List of two bytes that make up the data of a single channel.
-
-        """
-        rawData = int.from_bytes(dataBytes, byteorder='big', signed=False)
-        self.value = rawData * self.scalingFactor
-
-    def getValue(self):
-        """Get the value of this CAN channel."""
-        return self.value
+        self.scaling_factor = scaling_factor
