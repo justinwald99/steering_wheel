@@ -17,7 +17,7 @@ from steering_wheel import SteeringWheel
 BR_BUTTON_PIN = 16
 
 # Refresh rate in Hz.
-REFRESH_RATE = 25
+REFRESH_RATE = 30
 
 # Path to the config file.
 CONFIG_PATH = "config.yaml"
@@ -62,9 +62,9 @@ def setup():
     testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x01\x00\x0B\x54\x00\x03\x05\x0A')))
     testBus.send(can.Message(arbitration_id=10, data=bytearray(b'\x02\x00\x09\xC4')))
 
-    rpm = 8000
-    inc = 15
-    lastUpdateTime = time.time()
+    # rpm = 8000
+    # inc = 15
+    lastUpdateTime = time.perf_counter()
     while 1:
         for event in pygame.event.get():
             # Exit button.
@@ -79,17 +79,19 @@ def setup():
                 btn_pin.drive_low()
 
         # Update screen at given refresh rate.
-        if (time.time() - lastUpdateTime > 1 / REFRESH_RATE):
+        if (time.perf_counter() - lastUpdateTime > 1 / REFRESH_RATE):
+            print(f"framerate: {round(1 / (time.perf_counter() - lastUpdateTime))}")
+            lastUpdateTime = time.perf_counter()
             wheel.update()
-            lastUpdateTime = time.time()
-        testBus.send(can.Message(arbitration_id=10, data=bytearray(
-            list([0, 0, 1, int(random.random()*255), 1, int(random.random()*255), 1, int(random.random()*255)])))
-        )
-        rpm = rpm + inc
-        if rpm > 12500 or rpm < 8000:
-            inc = inc * -1
-        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([2, 0, int(rpm / 256 % 256), int(rpm % 256)]))))
-        testBus.send(can.Message(arbitration_id=10, data=bytearray(list([1, 0, 0, 0, 0, int(random.choice(range(1, 7)))]))))
+
+        # testBus.send(can.Message(arbitration_id=10, data=bytearray(
+        #     list([0, 0, 1, int(random.random()*255), 1, int(random.random()*255), 1, int(random.random()*255)])))
+        # )
+        # rpm = rpm + inc
+        # if rpm > 12500 or rpm < 8000:
+        #     inc = inc * -1
+        # testBus.send(can.Message(arbitration_id=10, data=bytearray(list([2, 0, int(rpm / 256 % 256), int(rpm % 256)]))))
+        # testBus.send(can.Message(arbitration_id=10, data=bytearray(list([1, 0, 0, 0, 0, int(random.choice(range(1, 7)))]))))
 
 
 if __name__ == '__main__':

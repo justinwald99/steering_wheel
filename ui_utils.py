@@ -103,8 +103,10 @@ class element_factory():
     def update_all(self):
         """Update all of the elements from the list with info from the DB."""
         pre_update_mark = time.perf_counter()
+
         for element in self.elements:
             element.update()
+
         perf_monitor.debug(f"element update time: {round((time.perf_counter() - pre_update_mark) * 1000)} ms")
 
     def set_theme(self, theme):
